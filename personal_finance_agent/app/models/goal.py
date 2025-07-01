@@ -41,6 +41,7 @@ class Goal(Base):
     Supports the primary €100,000 goal and intermediate milestones.
     """
     __tablename__ = "goals"
+    __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
     

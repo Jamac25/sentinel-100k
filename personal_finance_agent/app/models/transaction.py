@@ -32,6 +32,7 @@ class Transaction(Base):
     Central model that connects users, categories, and documents.
     """
     __tablename__ = "transactions"
+    __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
     

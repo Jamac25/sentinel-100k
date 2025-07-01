@@ -1,0 +1,251 @@
+"""
+Watchdog API - Emergency Financial Monitoring Endpoints
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from sqlalchemy.orm import Session
+from typing import Dict, Any, List
+import logging
+
+from ..db.base import get_db
+from ..services.sentinel_watchdog_service import watchdog_service, WatchdogMode
+from ..services.auth_service import get_current_user
+from ..models.user import User
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/watchdog", tags=["watchdog"])
+
+@router.get("/health-check")
+async def health_check():
+    """🔍 Watchdog service health check"""
+    return {
+        "status": "healthy",
+        "service": "Sentinel Watchdog",
+        "version": "1.0.0",
+        "mode": watchdog_service.current_mode.value
+    }
+
+@router.get("/status")
+async def get_watchdog_status(
+    current_user: User = Depends(get_current_user)
+):
+    """📋 Get current watchdog status"""
+    try:
+        status = watchdog_service.get_current_status()
+        return {
+            "success": True,
+            "data": status
+        }
+    except Exception as e:
+        logger.error(f"❌ Error getting watchdog status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/check-financial-health")
+async def check_financial_health(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """🔍 Trigger comprehensive financial health check"""
+    try:
+        # Run health check in background
+        health_result = await watchdog_service.check_financial_health(current_user.id)
+        
+        return {
+            "success": True,
+            "data": health_result,
+            "message": f"Financial health check completed - Mode: {health_result['mode']}"
+        }
+    except Exception as e:
+        logger.error(f"❌ Error in financial health check: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/alerts")
+async def get_alerts(
+    current_user: User = Depends(get_current_user)
+):
+    """🔔 Get current financial alerts"""
+    try:
+        alerts = watchdog_service.alert_history[-10:]  # Last 10 alerts
+        return {
+            "success": True,
+            "data": [alert.__dict__ for alert in alerts],
+            "count": len(alerts)
+        }
+    except Exception as e:
+        logger.error(f"❌ Error getting alerts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/configure-telegram")
+async def configure_telegram(
+    config: Dict[str, str],
+    current_user: User = Depends(get_current_user)
+):
+    """📱 Configure Telegram notifications"""
+    try:
+        bot_token = config.get("bot_token")
+        chat_id = config.get("chat_id")
+        
+        if not bot_token or not chat_id:
+            raise HTTPException(status_code=400, detail="bot_token and chat_id required")
+        
+        watchdog_service.configure_telegram(bot_token, chat_id)
+        
+        return {
+            "success": True,
+            "message": "Telegram notifications configured successfully"
+        }
+    except Exception as e:
+        logger.error(f"❌ Error configuring Telegram: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/emergency-contact")
+async def add_emergency_contact(
+    contact: Dict[str, str],
+    current_user: User = Depends(get_current_user)
+):
+    """👥 Add emergency contact"""
+    try:
+        required_fields = ["name", "phone", "email"]
+        if not all(field in contact for field in required_fields):
+            raise HTTPException(status_code=400, detail="name, phone, and email required")
+        
+        watchdog_service.add_emergency_contact(contact)
+        
+        return {
+            "success": True,
+            "message": f"Emergency contact {contact['name']} added successfully"
+        }
+    except Exception as e:
+        logger.error(f"❌ Error adding emergency contact: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/emergency-actions")
+async def get_emergency_actions(
+    current_user: User = Depends(get_current_user)
+):
+    """🚨 Get emergency action recommendations"""
+    try:
+        # Get current mode and suggest actions
+        mode = watchdog_service.current_mode
+        
+        if mode == WatchdogMode.EMERGENCY:
+            actions = [
+                {
+                    "priority": "high",
+                    "title": "🔍 Analysoi kulut",
+                    "description": "Käy läpi kaikki kulut viimeiseltä kuukaudelta",
+                    "category": "analysis",
+                    "estimated_savings": 200
+                },
+                {
+                    "priority": "high", 
+                    "title": "✂️ Peruuta tilaukset",
+                    "description": "Peruuta kaikki tarpeeettomat kuukausittaiset tilaukset",
+                    "category": "cost_cutting",
+                    "estimated_savings": 85
+                },
+                {
+                    "priority": "medium",
+                    "title": "💼 Etsi lisätöitä",
+                    "description": "Hae keikkatöitä tai osa-aikatyötä",
+                    "category": "income",
+                    "estimated_income": 500
+                },
+                {
+                    "priority": "medium",
+                    "title": "🏪 Myy tavaroita",
+                    "description": "Myy tarpeettomat tavarat Tori.fi:ssä tai FB Marketplacessa",
+                    "category": "income",
+                    "estimated_income": 300
+                }
+            ]
+        elif mode == WatchdogMode.WARNING:
+            actions = [
+                {
+                    "priority": "medium",
+                    "title": "📊 Tarkista budjetti",
+                    "description": "Aseta tiukemmat kuukausibudjetit",
+                    "category": "budgeting",
+                    "estimated_savings": 150
+                },
+                {
+                    "priority": "medium",
+                    "title": "💡 Etsi säästöjä",
+                    "description": "Vertaile palveluntarjoajia ja vaihda halvempiin",
+                    "category": "optimization",
+                    "estimated_savings": 75
+                }
+            ]
+        else:
+            actions = [
+                {
+                    "priority": "low",
+                    "title": "✅ Jatka hyvää työtä",
+                    "description": "Taloustilanteesi on hyvä - pidä kiinni hyvistä tavoista",
+                    "category": "maintenance",
+                    "estimated_savings": 0
+                }
+            ]
+        
+        return {
+            "success": True,
+            "data": {
+                "mode": mode.value,
+                "actions": actions,
+                "total_potential_savings": sum(action.get("estimated_savings", 0) for action in actions),
+                "total_potential_income": sum(action.get("estimated_income", 0) for action in actions)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting emergency actions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/simulate-emergency")
+async def simulate_emergency(
+    current_user: User = Depends(get_current_user)
+):
+    """🧪 Simulate emergency mode for testing (development only)"""
+    try:
+        # Force emergency mode for testing
+        watchdog_service.current_mode = WatchdogMode.EMERGENCY
+        
+        # Create test alert
+        from ..services.sentinel_watchdog_service import FinancialAlert
+        test_alert = FinancialAlert(
+            severity=WatchdogMode.EMERGENCY,
+            title="🧪 TEST: Hätätila simuloitu",
+            message="Tämä on testihälytys - taloustavoite vaarassa!",
+            action_required=True,
+            suggested_actions=["Testaa hätätilan toiminnot", "Tarkista notifikaatiot"],
+            deadline_days=1
+        )
+        
+        watchdog_service.alert_history.append(test_alert)
+        
+        return {
+            "success": True,
+            "message": "Emergency mode simulated successfully",
+            "mode": watchdog_service.current_mode.value
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error simulating emergency: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/reset-mode")
+async def reset_watchdog_mode(
+    current_user: User = Depends(get_current_user)
+):
+    """🔄 Reset watchdog to normal mode"""
+    try:
+        watchdog_service.current_mode = WatchdogMode.NORMAL
+        return {
+            "success": True,
+            "message": "Watchdog mode reset to normal",
+            "mode": watchdog_service.current_mode.value
+        }
+    except Exception as e:
+        logger.error(f"❌ Error resetting watchdog mode: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 

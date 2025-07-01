@@ -1,0 +1,14 @@
+INFO:__main__:🚀 Käynnistetään Sentinel 100k...
+WARNING:root:Google Vision not available
+INFO:app.services.ocr_service:OCR Engine initialized with tesseract
+INFO:app.services.ocr_service:OCR Engine initialized with tesseract
+INFO:app.services.categorization_service:No trained model found
+INFO:app.services.categorization_service:No trained model found
+INFO:app.services.sentinel_watchdog_service:🔥 Enhanced Sentinel Watchdog Service 3.0 initialized
+INFO:app.services.sentinel_watchdog_service:🔥 Enhanced Sentinel Watchdog Service 3.0 initialized
+ERROR:__main__:Virhe käynnistyksessä: Invalid args for response field! Hint: check that <class 'sqlalchemy.orm.session.Session'> is a valid Pydantic field type. If you are using a return type annotation that is not a valid Pydantic field (e.g. Union[Response, dict, None]) you can disable generating the response model from the type annotation with the path operation decorator parameter response_model=None. Read more: https://fastapi.tiangolo.com/tutorial/response-model/
+
+🔧 YRITÄ NÄITÄ:
+1. Tarkista että olet personal_finance_agent/ kansiossa
+2. Asenna riippuvuudet: pip3 install -r requirements.txt
+3. Käynnistä uudelleen: python3 simple_start.py

@@ -33,6 +33,7 @@ class Document(Base):
     Separates file metadata from actual object storage.
     """
     __tablename__ = "documents"
+    __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
     

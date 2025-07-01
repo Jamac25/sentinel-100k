@@ -1,0 +1,1 @@
+web: uvicorn sentinel_100_percent_complete:app --host 0.0.0.0 --port $PORT 

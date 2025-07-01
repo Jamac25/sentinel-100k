@@ -1,0 +1,36 @@
+services:
+  # 🎯 Sentinel 100K Main Web Service
+  - type: web
+    name: sentinel-100k
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn sentinel_100_percent_complete:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sentinel-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+    autoDeploy: true
+
+  # 🗄️ PostgreSQL Database
+  - type: pgsql
+    name: sentinel-db
+    plan: free
+    databaseName: sentinel_100k
+    user: sentinel_user
+
+  # 📁 Static Files (if needed)
+  - type: static
+    name: sentinel-static
+    staticPublishPath: ./static
+    buildCommand: echo "Static files ready"
+    envVars:
+      - key: NODE_ENV
+        value: production 

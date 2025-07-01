@@ -35,6 +35,7 @@ class AgentState(Base):
     Implements the emotional engagement system that responds to user's financial behavior.
     """
     __tablename__ = "agent_states"
+    __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
     
