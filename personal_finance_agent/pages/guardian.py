@@ -231,7 +231,7 @@ def display_emergency_protocol(protocol: Dict):
             for method in action['methods']:
                 st.markdown(f"- {method}")
 
-def show_guardian_page():
+def show_guardian_page(api):
     """
     Sentinel Guardian™ - Kehittynyt älykkäinen valvonta ja oppiminen
     6 välilehteä: Analyysi, Kommunikaatio, Ehdotukset, Hätätila, Oppiminen, Tiedot

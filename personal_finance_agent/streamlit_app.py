@@ -461,7 +461,7 @@ def main():
     elif page == "settings":
         show_settings_page(api)
     elif page == "intelligence":
-        show_intelligence_page()
+        show_intelligence_page(api)
 
 def show_dashboard_page():
     """Display main dashboard page."""

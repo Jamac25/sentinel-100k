@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List
 import json
 
-def show_intelligence_page():
+def show_intelligence_page(api):
     """
     Advanced Intelligence™ - Kattava älykkyyden dashboard
     4 välilehteä: Tulot, Velat, Ideat, Yhteenveto
