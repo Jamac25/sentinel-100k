@@ -154,7 +154,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # API Configuration
-API_BASE_URL = "http://localhost:8000/api/v1"
+API_BASE_URL = "https://sentinel-100k.onrender.com/api/v1"
 
 # Session state initialization
 if 'authenticated' not in st.session_state:

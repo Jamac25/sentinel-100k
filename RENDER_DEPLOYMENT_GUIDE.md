@@ -52,7 +52,7 @@
 Render Dashboardissa → Your Web Service → "Environment":
 
 ```bash
-DATABASE_URL=postgresql://...  # Kopioi tietokannasta
+DATABASE_URL=postgresql://username:password@hostname:port/sentinel_100k
 SECRET_KEY=your-secret-key-here
 ENVIRONMENT=production
 DEBUG=false
