@@ -19,6 +19,7 @@ from pathlib import Path
 import base64
 import hashlib
 import schedule
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form
@@ -33,51 +34,6 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sentinel.db")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 PORT = int(os.getenv("PORT", 8000))
-
-# 🚀 Application lifespan handler - Fixed for FastAPI latest version
-from contextlib import asynccontextmanager
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Lifespan event handler for FastAPI"""
-    # Startup
-    print(f"🚀 Sentinel 100K starting in {ENVIRONMENT} mode")
-    print(f"📊 Database: {DATABASE_URL[:20]}...")
-    print(f"🎯 Port: {PORT}")
-    
-    # Create necessary directories
-    data_manager = ProductionDataManager()
-    data_manager.data_dir.mkdir(exist_ok=True)
-    data_manager.cv_uploads_dir.mkdir(exist_ok=True)
-    
-    print("✅ Sentinel 100K production ready!")
-    
-    yield
-    
-    # Shutdown
-    print("🛑 Sentinel 100K shutting down...")
-
-# 🎯 FastAPI app - RENDER READY with lifespan
-app = FastAPI(
-    title="Sentinel 100K - Render Production",
-    description="Complete Finnish Personal Finance AI - PRODUCTION READY",
-    version="100.0.0",
-    docs_url="/docs" if DEBUG else None,  # Hide docs in production
-    redoc_url="/redoc" if DEBUG else None,
-    lifespan=lifespan
-)
-
-# 🌐 CORS - Production safe
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"] if DEBUG else [
-        "https://your-frontend-domain.com",
-        "https://sentinel-100k.onrender.com"
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["*"],
-)
 
 # 🗄️ Database Configuration
 def get_database_engine():
@@ -109,7 +65,7 @@ except Exception as e:
     engine = None
     SessionLocal = None
 
-# 📊 Data Models (same as before)
+# 📊 Data Models
 class ChatMessage(BaseModel):
     message: str
 
@@ -192,6 +148,48 @@ class ProductionDataManager:
 
 # Initialize data manager
 data_manager = ProductionDataManager()
+
+# 🚀 Application lifespan handler - Fixed for FastAPI latest version
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for FastAPI"""
+    # Startup
+    print(f"🚀 Sentinel 100K starting in {ENVIRONMENT} mode")
+    print(f"📊 Database: {DATABASE_URL[:20]}...")
+    print(f"🎯 Port: {PORT}")
+    
+    # Create necessary directories
+    data_manager.data_dir.mkdir(exist_ok=True)
+    data_manager.cv_uploads_dir.mkdir(exist_ok=True)
+    
+    print("✅ Sentinel 100K production ready!")
+    
+    yield
+    
+    # Shutdown
+    print("🛑 Sentinel 100K shutting down...")
+
+# 🎯 FastAPI app - RENDER READY with lifespan
+app = FastAPI(
+    title="Sentinel 100K - Render Production",
+    description="Complete Finnish Personal Finance AI - PRODUCTION READY",
+    version="100.0.0",
+    docs_url="/docs" if DEBUG else None,  # Hide docs in production
+    redoc_url="/redoc" if DEBUG else None,
+    lifespan=lifespan
+)
+
+# 🌐 CORS - Production safe
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if DEBUG else [
+        "https://your-frontend-domain.com",
+        "https://sentinel-100k.onrender.com"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
 
 # 🧠 Systems (simplified for production)
 class ProductionOnboardingSystem:
@@ -417,8 +415,6 @@ def complete_ai_chat(message: ChatMessage):
     }
     
     return response
-
-
 
 # 🏁 Main entry point
 if __name__ == "__main__":
