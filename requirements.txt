@@ -32,7 +32,6 @@ apscheduler>=3.10.4
 
 # File Handling & Storage
 aiofiles>=23.2.1
-python-multipart>=0.0.6
 
 # HTTP & Requests
 requests>=2.31.0
