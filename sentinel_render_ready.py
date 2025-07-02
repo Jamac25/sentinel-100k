@@ -34,13 +34,37 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 PORT = int(os.getenv("PORT", 8000))
 
-# 🎯 FastAPI app - RENDER READY
+# 🚀 Application lifespan handler - Fixed for FastAPI latest version
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for FastAPI"""
+    # Startup
+    print(f"🚀 Sentinel 100K starting in {ENVIRONMENT} mode")
+    print(f"📊 Database: {DATABASE_URL[:20]}...")
+    print(f"🎯 Port: {PORT}")
+    
+    # Create necessary directories
+    data_manager = ProductionDataManager()
+    data_manager.data_dir.mkdir(exist_ok=True)
+    data_manager.cv_uploads_dir.mkdir(exist_ok=True)
+    
+    print("✅ Sentinel 100K production ready!")
+    
+    yield
+    
+    # Shutdown
+    print("🛑 Sentinel 100K shutting down...")
+
+# 🎯 FastAPI app - RENDER READY with lifespan
 app = FastAPI(
     title="Sentinel 100K - Render Production",
     description="Complete Finnish Personal Finance AI - PRODUCTION READY",
     version="100.0.0",
     docs_url="/docs" if DEBUG else None,  # Hide docs in production
-    redoc_url="/redoc" if DEBUG else None
+    redoc_url="/redoc" if DEBUG else None,
+    lifespan=lifespan
 )
 
 # 🌐 CORS - Production safe
@@ -394,19 +418,7 @@ def complete_ai_chat(message: ChatMessage):
     
     return response
 
-# 🚀 Application startup
-@app.on_event("startup")
-async def startup_event():
-    """Initialize application on startup"""
-    print(f"🚀 Sentinel 100K starting in {ENVIRONMENT} mode")
-    print(f"📊 Database: {DATABASE_URL[:20]}...")
-    print(f"🎯 Port: {PORT}")
-    
-    # Create necessary directories
-    data_manager.data_dir.mkdir(exist_ok=True)
-    data_manager.cv_uploads_dir.mkdir(exist_ok=True)
-    
-    print("✅ Sentinel 100K production ready!")
+
 
 # 🏁 Main entry point
 if __name__ == "__main__":
