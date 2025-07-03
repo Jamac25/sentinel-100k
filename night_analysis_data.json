@@ -1,5 +1,26 @@
 {
-  "last_analysis": "2025-07-02T03:07:50.725379",
-  "users_analyzed": 0,
-  "results": {}
+  "last_analysis": "2025-07-03T02:35:14.669918",
+  "users_analyzed": 1,
+  "results": {
+    "onboarding_demo@example.com": {
+      "user_id": "onboarding_demo@example.com",
+      "goal_progress": 0.0,
+      "current_week": 3,
+      "weekly_performance": "on_track",
+      "risk_level": "high",
+      "ai_recommendations": [
+        "🚨 KRIITTINEN: Tehosta säästämistä välittömästi",
+        "💡 Harkitse lisätulolähteitä kiireellisesti",
+        "📊 Analysoi ja leikkaa kaikki tarpeettomat kulut"
+      ],
+      "next_week_adjustments": {
+        "target_multiplier": 1.3,
+        "additional_challenges": true,
+        "coaching_intensity": "high",
+        "success_probability": 60.0
+      },
+      "analysis_timestamp": "2025-07-03T02:35:14.669905",
+      "strategy_updated": true
+    }
+  }
 }

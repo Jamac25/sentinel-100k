@@ -1,0 +1,76 @@
+{
+  "onboarding_demo@example.com": {
+    "data_key": "onboarding_demo@example.com",
+    "user_id": "demo_user_123",
+    "user_email": "demo@example.com",
+    "current_week": 3,
+    "cycle_started": "2025-06-15T09:00:00",
+    "status": "active",
+    "total_target": 3150,
+    "cycles": [
+      {
+        "week_number": 1,
+        "savings_target": 400,
+        "income_target": 520,
+        "challenges": ["Tallenna kaikki kulut", "Löydä 3 säästökohdetta", "Tee budjetti viikolle"],
+        "skills_focus": ["Ohjelmointi", "Web-kehitys"],
+        "time_allocation": 15,
+        "difficulty_level": "beginner"
+      },
+      {
+        "week_number": 2,
+        "savings_target": 460,
+        "income_target": 598,
+        "challenges": ["Neuvottele yksi lasku alemmas", "Myy 1 tarpeeton esine", "Tee freelance-haku"],
+        "skills_focus": ["Ohjelmointi", "Web-kehitys"],
+        "time_allocation": 15,
+        "difficulty_level": "beginner"
+      },
+      {
+        "week_number": 3,
+        "savings_target": 529,
+        "income_target": 688,
+        "challenges": ["Aloita sivutyö", "Optimoi suurin kuluerä", "Luo passiivinen tulolähde"],
+        "skills_focus": ["Ohjelmointi", "Web-kehitys"],
+        "time_allocation": 15,
+        "difficulty_level": "intermediate"
+      },
+      {
+        "week_number": 4,
+        "savings_target": 608,
+        "income_target": 790,
+        "challenges": ["Kasvata sivutyötuloja", "Automatisoi säästäminen", "Verkostoidu ammattialalla"],
+        "skills_focus": ["Ohjelmointi", "Web-kehitys"],
+        "time_allocation": 15,
+        "difficulty_level": "intermediate"
+      },
+      {
+        "week_number": 5,
+        "savings_target": 700,
+        "income_target": 910,
+        "challenges": ["Lanseeraa oma palvelu", "Nosta tuntihintoja", "Solmi pitkäaikainen sopimus"],
+        "skills_focus": ["Ohjelmointi", "Web-kehitys"],
+        "time_allocation": 15,
+        "difficulty_level": "intermediate"
+      },
+      {
+        "week_number": 6,
+        "savings_target": 805,
+        "income_target": 1047,
+        "challenges": ["Skaalaa liiketoimintaa", "Tee strateginen sijoitus", "Luo toinen tulolähde"],
+        "skills_focus": ["Ohjelmointi", "Web-kehitys"],
+        "time_allocation": 15,
+        "difficulty_level": "advanced"
+      },
+      {
+        "week_number": 7,
+        "savings_target": 926,
+        "income_target": 1204,
+        "challenges": ["Maksimoi kaikki tulot", "Varmista jatkuvuus", "Suunnittele seuraava sykli"],
+        "skills_focus": ["Ohjelmointi", "Web-kehitys"],
+        "time_allocation": 15,
+        "difficulty_level": "advanced"
+      }
+    ]
+  }
+} 

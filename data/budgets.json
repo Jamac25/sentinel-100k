@@ -1,0 +1,62 @@
+{
+  "budget_demo@example.com_1751485232": {
+    "id": "budget_demo@example.com_1751485232",
+    "user_email": "demo@example.com",
+    "name": "Monthly Budget",
+    "period": "monthly",
+    "created_at": "2025-07-02T22:40:32.525975",
+    "monthly_income": 3500,
+    "categories": {
+      "housing": {
+        "name": "Asuminen",
+        "budget_amount": 1000,
+        "spent_amount": 0,
+        "remaining": 1000,
+        "daily_limit": 33.333333333333336,
+        "status": "active"
+      },
+      "food": {
+        "name": "Ruoka",
+        "budget_amount": 400,
+        "spent_amount": 150.0,
+        "remaining": 250.0,
+        "daily_limit": 13.333333333333334,
+        "status": "active"
+      },
+      "transport": {
+        "name": "Liikenne",
+        "budget_amount": 150,
+        "spent_amount": 0,
+        "remaining": 150,
+        "daily_limit": 5.0,
+        "status": "active"
+      },
+      "entertainment": {
+        "name": "Viihde",
+        "budget_amount": 200,
+        "spent_amount": 0,
+        "remaining": 200,
+        "daily_limit": 6.666666666666667,
+        "status": "active"
+      },
+      "other": {
+        "name": "Muut",
+        "budget_amount": 100,
+        "spent_amount": 0,
+        "remaining": 100,
+        "daily_limit": 3.3333333333333335,
+        "status": "active"
+      }
+    },
+    "total_budget": 1850,
+    "total_spent": 150.0,
+    "total_remaining": 1700.0,
+    "savings_target": 1650,
+    "savings_actual": 3350.0,
+    "alerts_enabled": true,
+    "overspend_alerts": true,
+    "daily_check": true,
+    "weekly_review": true,
+    "status": "active"
+  }
+}

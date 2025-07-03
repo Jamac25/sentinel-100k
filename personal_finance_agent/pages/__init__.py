@@ -10,6 +10,7 @@ from .goals import show_goals_page
 from .settings import show_settings_page
 from .guardian import show_guardian_page
 from .intelligence import show_intelligence_page
+from .onboarding import show_onboarding_page
 
 __all__ = [
     "show_transactions_page",
@@ -18,5 +19,6 @@ __all__ = [
     "show_goals_page",
     "show_settings_page",
     "show_guardian_page",
-    "show_intelligence_page"
+    "show_intelligence_page",
+    "show_onboarding_page"
 ] 

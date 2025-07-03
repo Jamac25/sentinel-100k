@@ -1,0 +1,23 @@
+{
+  "onboarding_demo@example.com": {
+    "name": "Demo Käyttäjä",
+    "email": "demo@example.com", 
+    "user_id": "demo_user_123",
+    "current_savings": 35000,
+    "savings_goal": 100000,
+    "monthly_income": 4500,
+    "monthly_expenses": 3200,
+    "skills": ["Ohjelmointi", "Web-kehitys", "Markkinointi"],
+    "risk_tolerance": "Maltillinen",
+    "age": 32,
+    "profession": "Full Stack Developer",
+    "work_experience_years": 8,
+    "time_availability_hours": 15,
+    "financial_goals": ["Säästäminen", "Sijoittaminen"],
+    "preferred_income_methods": ["Freelancing", "Sijoittaminen"],
+    "motivation_level": 8,
+    "onboarding_completed": "2025-07-02T20:00:00",
+    "profile_completeness": 100,
+    "personalization_level": "maximum"
+  }
+} 

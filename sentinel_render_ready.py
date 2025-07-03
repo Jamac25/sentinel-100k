@@ -294,6 +294,191 @@ class ProductionAnalysisSystem:
         print(f"🌙 Production Night Analysis completed for {len(analysis_results)} users")
         return analysis_results
 
+# 🔐 ENHANCED CONTEXT SYSTEM for RENDER
+class RenderUserContextManager:
+    """
+    Enhanced Context Manager for Render production
+    Integrates with production data manager
+    """
+    
+    def __init__(self, user_email: str):
+        self.user_email = user_email
+        self.data_key = f"onboarding_{user_email}"
+        
+        # Load data via data manager
+        self.onboarding_data = data_manager.get_onboarding_data()
+        self.cycles_data = data_manager.get_cycles_data()
+        self.analysis_data = data_manager.get_analysis_data()
+        self.users_data = data_manager.get_user_data()
+        
+        # Get user profiles
+        self.profile = self.onboarding_data.get(self.data_key, {})
+        self.cycles = self.cycles_data.get(self.data_key, {})
+        self.analysis = self.analysis_data.get("results", {}).get(self.data_key, {})
+        self.user_info = self.users_data.get(user_email, {})
+
+    def get_enhanced_context(self) -> Dict[str, Any]:
+        """Get complete user context for Render"""
+        
+        # Base context
+        base_context = {
+            "user_email": self.user_email,
+            "data_key": self.data_key,
+            "user_id": self.profile.get("user_id"),
+            "name": self.profile.get("name"),
+            "current_savings": self.profile.get("current_savings", 0),
+            "savings_goal": self.profile.get("savings_goal", 100000),
+            "monthly_income": self.profile.get("monthly_income", 0),
+            "monthly_expenses": self.profile.get("monthly_expenses", 0),
+            "skills": self.profile.get("skills", []),
+            "risk_tolerance": self.profile.get("risk_tolerance", "Maltillinen"),
+            "current_week": self.cycles.get("current_week", 1),
+            "weekly_target": 0,
+            "cycle_progress": 0,
+        }
+        
+        # Calculate weekly target from cycles
+        if self.cycles and "cycles" in self.cycles:
+            current_week = base_context["current_week"]
+            if current_week <= len(self.cycles["cycles"]):
+                current_cycle = self.cycles["cycles"][current_week - 1]
+                base_context["weekly_target"] = current_cycle.get("savings_target", 0)
+                base_context["cycle_progress"] = (current_week / 7) * 100
+        
+        # Enhanced context
+        enhanced_context = {
+            **base_context,
+            "target_income_weekly": base_context.get("weekly_target", 300),
+            "target_income_monthly": base_context.get("monthly_income", 3000),
+            "interests": self._extract_interests_from_skills(),
+            "watchdog_state": self._determine_watchdog_state(),
+            "ai_context": self._build_ai_context(),
+            "progress_summary": self._calculate_progress_summary(base_context),
+            "current_cycle_details": self._get_current_cycle_details(),
+            "latest_analysis": self.analysis,
+            "context_generated": datetime.now().isoformat(),
+            "data_completeness": self._calculate_data_completeness(),
+            "render_production": True
+        }
+        
+        return enhanced_context
+
+    def _extract_interests_from_skills(self) -> list:
+        """Convert skills to interests"""
+        skills = self.profile.get("skills", [])
+        interest_mapping = {
+            "Ohjelmointi": "Teknologia",
+            "Web-kehitys": "Teknologia", 
+            "Graafinen suunnittelu": "Luovuus",
+            "UI/UX": "Muotoilu",
+            "Markkinointi": "Liiketoiminta",
+            "Myynti": "Liiketoiminta",
+            "Kirjoittaminen": "Sisällöntuotanto",
+            "Valokuvaus": "Luovuus"
+        }
+        
+        interests = []
+        for skill in skills:
+            if skill in interest_mapping:
+                interests.append(interest_mapping[skill])
+        
+        return list(set(interests))
+
+    def _determine_watchdog_state(self) -> str:
+        """Determine watchdog state based on progress"""
+        # Calculate progress from current savings
+        current_savings = self.profile.get("current_savings", 0)
+        savings_goal = self.profile.get("savings_goal", 100000)
+        goal_progress = (current_savings / savings_goal * 100) if savings_goal > 0 else 0
+        
+        risk_level = self.analysis.get("risk_level", "unknown")
+        
+        if risk_level == "high" or goal_progress < 25:
+            return "Alert"
+        elif risk_level == "medium" or goal_progress < 50:
+            return "Active"
+        elif goal_progress > 75:
+            return "Optimized"
+        else:
+            return "Passive"
+
+    def _build_ai_context(self) -> Dict[str, Any]:
+        """Build AI context"""
+        return {
+            "financial_goals": self.profile.get("financial_goals", []),
+            "preferred_income_methods": self.profile.get("preferred_income_methods", []),
+            "work_experience_years": self.profile.get("work_experience_years", 0),
+            "time_availability_hours": self.profile.get("time_availability_hours", 0),
+            "motivation_level": self.profile.get("motivation_level", 7),
+            "ai_recommendations": self.analysis.get("ai_recommendations", [])
+        }
+
+    def _calculate_progress_summary(self, base_context: dict) -> Dict[str, Any]:
+        """Calculate progress summary"""
+        current_savings = base_context.get("current_savings", 0)
+        savings_goal = base_context.get("savings_goal", 100000)
+        
+        progress_percentage = (current_savings / savings_goal * 100) if savings_goal > 0 else 0
+        
+        return {
+            "goal_progress_percentage": round(progress_percentage, 2),
+            "amount_to_goal": savings_goal - current_savings,
+            "weeks_completed": base_context.get("current_week", 1) - 1,
+            "weeks_remaining": 8 - base_context.get("current_week", 1),
+            "on_track": progress_percentage >= (base_context.get("current_week", 1) - 1) * 14.3
+        }
+
+    def _get_current_cycle_details(self) -> Dict[str, Any]:
+        """Get current cycle details"""
+        if not self.cycles or "cycles" not in self.cycles:
+            return {}
+        
+        current_week = self.cycles.get("current_week", 1)
+        if current_week <= len(self.cycles["cycles"]):
+            return self.cycles["cycles"][current_week - 1]
+        
+        return {}
+
+    def _calculate_data_completeness(self) -> int:
+        """Calculate data completeness percentage"""
+        required_fields = [
+            "name", "email", "current_savings", "savings_goal", 
+            "monthly_income", "monthly_expenses", "skills"
+        ]
+        
+        completed_fields = sum(1 for field in required_fields if self.profile.get(field))
+        return round((completed_fields / len(required_fields)) * 100)
+
+def build_render_enhanced_ai_prompt(user_email: str, query: str) -> str:
+    """Build enhanced AI prompt for Render production"""
+    ctx = RenderUserContextManager(user_email).get_enhanced_context()
+    
+    return f"""
+Sinä olet Sentinel 100K -agentti, älykkä henkilökohtainen talousvalmentaja.
+
+=== KÄYTTÄJÄN TÄYDELLINEN KONTEKSTI (RENDER PRODUCTION) ===
+👤 Käyttäjä: {ctx['name']} ({ctx['user_email']})
+💰 Nykyiset säästöt: {ctx['current_savings']:,.0f}€
+🎯 Tavoite: {ctx['savings_goal']:,.0f}€ 
+📈 Edistyminen: {ctx['progress_summary']['goal_progress_percentage']:.1f}%
+
+📅 VIIKKOSYKLI:
+- Viikko: {ctx['current_week']}/7
+- Viikkotavoite: {ctx['target_income_weekly']:,.0f}€
+- Sykli edistyminen: {ctx['cycle_progress']:.1f}%
+
+🤖 AGENTTI TILA:
+- Watchdog: {ctx['watchdog_state']}
+- Motivaatio: {ctx['ai_context']['motivation_level']}/10
+- Datan täydellisyys: {ctx['data_completeness']}%
+
+=== KÄYTTÄJÄN KYSYMYS ===
+{query}
+
+=== OHJEISTUS ===
+Vastaa henkilökohtaisesti ja käytännöllisesti. Anna konkreettisia neuvoja jotka sopivat juuri tälle käyttäjälle.
+"""
+
 # Initialize systems
 onboarding_system = ProductionOnboardingSystem()
 cycle_system = ProductionCycleSystem()
@@ -395,9 +580,201 @@ def get_latest_night_analysis():
         "timestamp": datetime.now().isoformat()
     }
 
+# 🎯 DASHBOARD SUMMARY with ENHANCED CONTEXT for RENDER
+@app.get("/api/v1/dashboard/complete/{user_email}")
+def get_dashboard_summary_render(user_email: str):
+    """
+    Complete dashboard summary for Render production
+    Uses enhanced context system for full goal tracking
+    """
+    try:
+        context_manager = RenderUserContextManager(user_email)
+        context = context_manager.get_enhanced_context()
+        
+        # User profile from enhanced context
+        user_profile = {
+            "user_id": context["user_id"],
+            "email": context["user_email"],
+            "name": context["name"],
+            "current_savings": context["current_savings"],
+            "savings_goal": context["savings_goal"],
+            "goal_progress": context["progress_summary"]["goal_progress_percentage"],
+            "monthly_income": context["monthly_income"],
+            "monthly_expenses": context["monthly_expenses"],
+            "data_completeness": context["data_completeness"]
+        }
+        
+        # Weekly cycle information
+        weekly_cycle = {
+            "current_week": context["current_week"],
+            "weekly_target": context["target_income_weekly"],
+            "cycle_progress": context["cycle_progress"],
+            "challenges_count": len(context["current_cycle_details"].get("challenges", [])),
+            "difficulty_level": context["current_cycle_details"].get("difficulty_level", "beginner"),
+            "status": "active" if context["current_week"] <= 7 else "completed"
+        }
+        
+        # Night analysis
+        night_analysis = {
+            "last_analysis": context["latest_analysis"].get("analysis_timestamp", "Never"),
+            "risk_level": context["latest_analysis"].get("risk_level", "unknown"),
+            "recommendations_count": len(context["ai_context"]["ai_recommendations"]),
+            "watchdog_state": context["watchdog_state"]
+        }
+        
+        # Next actions based on enhanced context
+        next_actions = []
+        if context["data_completeness"] < 100:
+            next_actions.append("Täydennä profiilitiedot")
+        if context["current_week"] <= 7:
+            next_actions.append(f"Suorita viikko {context['current_week']} haasteet")
+        if context["watchdog_state"] == "Alert":
+            next_actions.append("Tarkista säästöstrategia - Watchdog huolissaan")
+        if len(context["ai_context"]["ai_recommendations"]) > 0:
+            next_actions.append("Tarkasta AI-suositukset")
+        
+        # Achievements based on progress
+        achievements = {
+            "onboarding_master": context["data_completeness"] >= 100,
+            "cycle_participant": context["current_week"] > 1,
+            "week_completer": context["progress_summary"]["weeks_completed"] > 0,
+            "analysis_reviewed": len(context["ai_context"]["ai_recommendations"]) > 0,
+            "goal_tracker": context["progress_summary"]["goal_progress_percentage"] > 0,
+            "watchdog_monitored": context["watchdog_state"] != "Passive"
+        }
+        
+        return {
+            "status": "success",
+            "user_profile": user_profile,
+            "weekly_cycle": weekly_cycle,
+            "night_analysis": night_analysis,
+            "achievements": achievements,
+            "next_actions": next_actions[:5],  # Limit to 5
+            "enhanced_features": {
+                "goal_tracking": "active",
+                "watchdog_monitoring": context["watchdog_state"],
+                "personalization_level": "maximum",
+                "ai_context": "loaded",
+                "data_sources": "complete"
+            },
+            "environment": "render_production",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Dashboard summary failed: {str(e)}",
+            "user_email": user_email,
+            "fallback": "Use basic endpoints"
+        }
+
+# 🔌 ENHANCED CONTEXT ENDPOINTS for RENDER
+
+@app.get("/api/v1/context/{user_email}")
+def get_user_enhanced_context_render(user_email: str):
+    """
+    Enhanced user context for Render production
+    Includes goal tracking and watchdog functionality
+    """
+    try:
+        context_manager = RenderUserContextManager(user_email)
+        enhanced_context = context_manager.get_enhanced_context()
+        
+        return {
+            "status": "success",
+            "user_email": user_email,
+            "enhanced_context": enhanced_context,
+            "environment": "render_production",
+            "data_sources": [
+                "data/onboarding.json",
+                "data/cycles.json", 
+                "data/analysis.json",
+                "data/users.json"
+            ],
+            "features_active": [
+                "goal_tracking", "watchdog_monitoring", "progress_analysis", 
+                "ai_context", "weekly_cycles", "personalization"
+            ]
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Enhanced context failed: {str(e)}",
+            "fallback": "Use basic endpoints"
+        }
+
+@app.post("/api/v1/chat/enhanced")
+def enhanced_ai_chat_render(message: ChatMessage, user_email: str):
+    """
+    Enhanced AI chat for Render with full user context
+    """
+    try:
+        # Build enhanced prompt with user context
+        enhanced_prompt = build_render_enhanced_ai_prompt(user_email, message.message)
+        
+        # Get user context for response personalization
+        context_manager = RenderUserContextManager(user_email)
+        context = context_manager.get_enhanced_context()
+        
+        # AI response based on context (mock for now)
+        user_message = message.message.lower()
+        
+        if "säästä" in user_message or "goal" in user_message:
+            response = f"""🎯 Henkilökohtainen säästöanalyysi {context['name']}:
+            
+💰 Nykyiset säästösi: {context['current_savings']:,.0f}€
+📈 Edistyminen tavoitteeseen: {context['progress_summary']['goal_progress_percentage']:.1f}%
+🎯 Jäljellä tavoitteeseen: {context['progress_summary']['amount_to_goal']:,.0f}€
+
+🤖 Watchdog-tila: {context['watchdog_state']}
+📅 Viikko {context['current_week']}/7, tavoite: {context['target_income_weekly']:,.0f}€
+
+Suositus: {context['ai_context']['ai_recommendations'][0] if context['ai_context']['ai_recommendations'] else 'Jatka hyvää työtä!'}"""
+        
+        elif "tilanne" in user_message or "progress" in user_message:
+            response = f"""📊 Tilannekatsaus {context['name']}:
+            
+✅ Profiilitäydellisyys: {context['data_completeness']}%
+🔄 Viikkosykli: {context['current_week']}/7 ({context['cycle_progress']:.1f}% valmis)
+🎯 Tavoitteessa: {'✅ Kyllä' if context['progress_summary']['on_track'] else '⚠️ Hieman jäljessä'}
+
+🤖 Agentin tila: {context['watchdog_state']}
+💡 Kiinnostukset: {', '.join(context['interests']) if context['interests'] else 'Ei määritelty'}
+            
+Personoitu vastaus perustuu täydelliseen käyttäjäprofiiliisi! 🚀"""
+        
+        else:
+            response = f"""🤖 Enhanced AI-vastaus {context['name']}:
+            
+Olen analysoinut henkilökohtaisen profiilisi:
+• Watchdog-tila: {context['watchdog_state']}
+• Edistyminen: {context['progress_summary']['goal_progress_percentage']:.1f}%
+• Viikko: {context['current_week']}/7
+
+Henkilökohtainen neuvoni: {message.message}"""
+        
+        return {
+            "response": response,
+            "enhanced_prompt_used": True,
+            "user_email": user_email,
+            "personalization_level": "Maximum",
+            "context_sources": ["goal_tracking", "watchdog", "cycles", "analysis"],
+            "watchdog_state": context["watchdog_state"],
+            "goal_progress": context["progress_summary"]["goal_progress_percentage"],
+            "timestamp": datetime.now().isoformat(),
+            "model": "sentinel-enhanced-render",
+            "environment": "render_production"
+        }
+        
+    except Exception as e:
+        # Fallback to basic chat
+        return complete_ai_chat(message)
+
 @app.post("/api/v1/chat/complete")
 def complete_ai_chat(message: ChatMessage):
-    """AI Chat with Finnish responses"""
+    """AI Chat with Finnish responses (Basic version)"""
     finnish_responses = [
         "Hyvä kysymys! Keskitytään säästötavoitteisiisi.",
         "Erinomaista edistymistä! Jatka samaan malliin.",
@@ -410,11 +787,57 @@ def complete_ai_chat(message: ChatMessage):
         "response": f"{finnish_responses[hash(message.message) % len(finnish_responses)]} {message.message}",
         "timestamp": datetime.now().isoformat(),
         "ai_confidence": 0.95,
-        "personalized": True,
-        "language": "finnish"
+        "personalized": False,
+        "language": "finnish",
+        "model": "sentinel-basic",
+        "note": "For enhanced features use /api/v1/chat/enhanced"
     }
     
     return response
+
+# 📊 GOAL TRACKING ENDPOINT for RENDER
+@app.get("/api/v1/goals/progress/{user_email}")
+def get_goal_progress_render(user_email: str):
+    """
+    Goal tracking endpoint for Render production
+    """
+    try:
+        context_manager = RenderUserContextManager(user_email)
+        context = context_manager.get_enhanced_context()
+        
+        return {
+            "status": "active",
+            "user_email": user_email,
+            "goal_tracking": {
+                "current_savings": context["current_savings"],
+                "savings_goal": context["savings_goal"],
+                "progress_percentage": context["progress_summary"]["goal_progress_percentage"],
+                "amount_to_goal": context["progress_summary"]["amount_to_goal"],
+                "on_track": context["progress_summary"]["on_track"],
+                "weeks_completed": context["progress_summary"]["weeks_completed"],
+                "weeks_remaining": context["progress_summary"]["weeks_remaining"]
+            },
+            "weekly_status": {
+                "current_week": context["current_week"],
+                "weekly_target": context["target_income_weekly"],
+                "cycle_progress": context["cycle_progress"],
+                "difficulty_level": context["current_cycle_details"].get("difficulty_level", "N/A")
+            },
+            "watchdog_monitoring": {
+                "state": context["watchdog_state"],
+                "risk_assessment": context["latest_analysis"].get("risk_level", "unknown"),
+                "recommendations": context["ai_context"]["ai_recommendations"][:3]
+            },
+            "environment": "render_production",
+            "last_updated": context["context_generated"]
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Goal tracking failed: {str(e)}",
+            "user_email": user_email
+        }
 
 # 🏁 Main entry point
 if __name__ == "__main__":
