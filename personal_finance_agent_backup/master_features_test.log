@@ -1,0 +1,9 @@
+INFO:__main__:🚀 Käynnistetään Sentinel 100k...
+WARNING:root:Google Vision not available
+INFO:app.services.ocr_service:OCR Engine initialized with tesseract
+ERROR:__main__:Virhe käynnistyksessä: cannot import name 'SessionLocal' from partially initialized module 'app.db.init_db' (most likely due to a circular import) (/Users/user/sentinel 100k/personal_finance_agent/app/db/init_db.py)
+
+🔧 YRITÄ NÄITÄ:
+1. Tarkista että olet personal_finance_agent/ kansiossa
+2. Asenna riippuvuudet: pip3 install -r requirements.txt
+3. Käynnistä uudelleen: python3 simple_start.py

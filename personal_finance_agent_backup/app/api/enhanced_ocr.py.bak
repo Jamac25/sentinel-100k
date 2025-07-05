@@ -1,0 +1,230 @@
+"""
+Enhanced OCR API - Receipt and PDF Processing Endpoints
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from sqlalchemy.orm import Session
+from typing import Dict, Any, List
+import logging
+
+from ..db.base import get_db
+from ..services.enhanced_ocr_service import enhanced_ocr_service
+from ..services.auth_service import get_current_user
+from ..models.user import User
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/enhanced-ocr", tags=["enhanced_ocr"])
+
+@router.get("/health-check")
+async def health_check():
+    """🔍 Enhanced OCR service health check"""
+    return {
+        "status": "healthy",
+        "service": "Enhanced OCR",
+        "version": "1.0.0",
+        "supported_formats": enhanced_ocr_service.supported_formats
+    }
+
+@router.post("/process-receipt")
+async def process_receipt(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """📸 Process receipt with OCR and categorization"""
+    try:
+        # Read file data
+        file_data = await file.read()
+        
+        # Process receipt
+        result = enhanced_ocr_service.process_receipt(file_data, file.filename)
+        
+        return {
+            "success": result.success,
+            "data": {
+                "text": result.text,
+                "confidence": result.confidence,
+                "merchant": result.merchant,
+                "total_amount": result.total_amount,
+                "date": result.date.isoformat() if result.date else None,
+                "category": result.category,
+                "category_confidence": result.category_confidence,
+                "detected_items": result.detected_items
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error processing receipt: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/process-bank-statement")
+async def process_bank_statement(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """🏦 Process bank statement PDF"""
+    try:
+        # Read file data
+        file_data = await file.read()
+        
+        # Process bank statement
+        transactions = enhanced_ocr_service.process_bank_statement(file_data, file.filename)
+        
+        # Convert to serializable format
+        transactions_data = []
+        for transaction in transactions:
+            transactions_data.append({
+                "date": transaction.date.isoformat(),
+                "description": transaction.description,
+                "amount": transaction.amount,
+                "merchant": transaction.merchant,
+                "category": transaction.category,
+                "category_confidence": transaction.category_confidence,
+                "raw_text": transaction.raw_text
+            })
+        
+        return {
+            "success": True,
+            "data": {
+                "transactions": transactions_data,
+                "count": len(transactions_data)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error processing bank statement: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/auto-categorize")
+async def auto_categorize_transactions(
+    transactions: List[Dict[str, Any]],
+    current_user: User = Depends(get_current_user)
+):
+    """🤖 Auto-categorize transactions using ML"""
+    try:
+        categorized = enhanced_ocr_service.auto_categorize_transactions(transactions)
+        
+        return {
+            "success": True,
+            "data": {
+                "transactions": categorized,
+                "count": len(categorized)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error auto-categorizing: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/learn-correction")
+async def learn_from_correction(
+    correction_data: Dict[str, str],
+    current_user: User = Depends(get_current_user)
+):
+    """📚 Learn from user correction"""
+    try:
+        original_text = correction_data.get("original_text", "")
+        merchant = correction_data.get("merchant", "")
+        correct_category = correction_data.get("correct_category", "")
+        
+        if not all([original_text, correct_category]):
+            raise HTTPException(status_code=400, detail="original_text and correct_category required")
+        
+        enhanced_ocr_service.learn_from_correction(original_text, merchant, correct_category)
+        
+        return {
+            "success": True,
+            "message": "Learning data updated successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error learning from correction: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/generate-budget")
+async def generate_budget_from_history(
+    request_data: Dict[str, Any],
+    current_user: User = Depends(get_current_user)
+):
+    """📊 Generate automatic budget from transaction history"""
+    try:
+        transactions = request_data.get("transactions", [])
+        months = request_data.get("months", 3)
+        
+        budget_result = enhanced_ocr_service.generate_budget_from_history(transactions, months)
+        
+        return {
+            "success": budget_result.get("success", False),
+            "data": budget_result
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error generating budget: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/test-receipt")
+async def test_receipt_processing(
+    current_user: User = Depends(get_current_user)
+):
+    """🧪 Test receipt processing with mock data"""
+    try:
+        # Create mock receipt data
+        mock_receipt_data = b"Mock receipt data"
+        
+        result = enhanced_ocr_service.process_receipt(mock_receipt_data, "test_receipt.jpg")
+        
+        return {
+            "success": result.success,
+            "data": {
+                "text": result.text,
+                "confidence": result.confidence,
+                "merchant": result.merchant,
+                "total_amount": result.total_amount,
+                "date": result.date.isoformat() if result.date else None,
+                "category": result.category,
+                "category_confidence": result.category_confidence,
+                "detected_items": result.detected_items
+            },
+            "message": "Test receipt processed successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error in test receipt: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/test-bank-statement")
+async def test_bank_statement_processing(
+    current_user: User = Depends(get_current_user)
+):
+    """🧪 Test bank statement processing with mock data"""
+    try:
+        # Create mock bank statement data
+        mock_pdf_data = b"Mock PDF data"
+        
+        transactions = enhanced_ocr_service.process_bank_statement(mock_pdf_data, "test_statement.pdf")
+        
+        # Convert to serializable format
+        transactions_data = []
+        for transaction in transactions:
+            transactions_data.append({
+                "date": transaction.date.isoformat(),
+                "description": transaction.description,
+                "amount": transaction.amount,
+                "merchant": transaction.merchant,
+                "category": transaction.category,
+                "category_confidence": transaction.category_confidence,
+                "raw_text": transaction.raw_text
+            })
+        
+        return {
+            "success": True,
+            "data": {
+                "transactions": transactions_data,
+                "count": len(transactions_data)
+            },
+            "message": "Test bank statement processed successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error in test bank statement: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 

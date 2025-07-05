@@ -1,0 +1,12 @@
+{"timestamp": "2025-06-21T23:23:37.078206Z", "level": "INFO", "service_name": "personal_finance_agent", "message": "Starting Personal Finance Agent...", "module": "main", "function": "lifespan", "line": 107}
+{"timestamp": "2025-06-21T23:23:37.078306Z", "level": "INFO", "service_name": "personal_finance_agent", "message": "Initializing database...", "module": "main", "function": "lifespan", "line": 111}
+{"timestamp": "2025-06-21T23:23:37.078944Z", "level": "INFO", "service_name": "personal_finance_agent", "message": "Database tables created successfully", "module": "init_db", "function": "create_tables", "line": 36}
+{"timestamp": "2025-06-21T23:23:37.105616Z", "level": "WARNING", "service_name": "personal_finance_agent", "message": "(trapped) error reading bcrypt version", "module": "bcrypt", "function": "_load_backend_mixin", "line": 622}
+{"timestamp": "2025-06-21T23:23:37.346596Z", "level": "INFO", "service_name": "personal_finance_agent", "message": "Demo user created successfully", "module": "init_db", "function": "create_demo_user", "line": 67}
+{"timestamp": "2025-06-21T23:23:37.346694Z", "level": "INFO", "service_name": "personal_finance_agent", "message": "Database initialization completed successfully", "module": "init_db", "function": "init_db", "line": 83}
+{"timestamp": "2025-06-21T23:23:37.346732Z", "level": "INFO", "service_name": "personal_finance_agent", "message": "Starting scheduler service...", "module": "main", "function": "lifespan", "line": 115}
+{"timestamp": "2025-06-21T23:23:37.346761Z", "level": "INFO", "service_name": "personal_finance_agent", "message": "Scheduler service disabled temporarily", "module": "main", "function": "lifespan", "line": 117}
+{"timestamp": "2025-06-21T23:23:37.346786Z", "level": "INFO", "service_name": "personal_finance_agent", "message": "Application startup completed successfully", "module": "main", "function": "lifespan", "line": 119}
+{"timestamp": "2025-06-21T23:23:45.730009Z", "level": "INFO", "service_name": "personal_finance_agent", "message": "Shutting down Personal Finance Agent...", "module": "main", "function": "lifespan", "line": 128}
+{"timestamp": "2025-06-21T23:23:45.730907Z", "level": "INFO", "service_name": "personal_finance_agent", "message": "Scheduler service stopped", "module": "main", "function": "lifespan", "line": 133}
+{"timestamp": "2025-06-21T23:23:45.730988Z", "level": "INFO", "service_name": "personal_finance_agent", "message": "Application shutdown completed", "module": "main", "function": "lifespan", "line": 138}

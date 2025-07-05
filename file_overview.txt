@@ -1,0 +1,39 @@
+# 📊 Sentinel 100K - File Overview
+
+## Key Files and Line Counts
+
+### Main Production Files:
+    1995 sentinel_render_enhanced.py
+    1138 sentinel_100_percent_complete.py
+     477 sentinel_backend_fixed.py
+    3610 total
+
+### FastAPI Application:
+     217 personal_finance_agent/app/core/config.py
+       0 personal_finance_agent/app/core/__init__.py
+       6 personal_finance_agent/app/__init__.py
+     102 personal_finance_agent/app/models/user.py
+     154 personal_finance_agent/app/models/category_correction.py
+     139 personal_finance_agent/app/models/budget.py
+     109 personal_finance_agent/app/models/transaction.py
+     228 personal_finance_agent/app/models/agent_state.py
+      34 personal_finance_agent/app/models/__init__.py
+     167 personal_finance_agent/app/models/recommendation.py
+     114 personal_finance_agent/app/models/document.py
+     184 personal_finance_agent/app/models/goal.py
+      57 personal_finance_agent/app/models/category.py
+      69 personal_finance_agent/app/schemas/auth.py
+     126 personal_finance_agent/app/schemas/user.py
+     176 personal_finance_agent/app/schemas/transaction.py
+      78 personal_finance_agent/app/schemas/__init__.py
+     184 personal_finance_agent/app/schemas/dashboard.py
+      65 personal_finance_agent/app/schemas/document.py
+     116 personal_finance_agent/app/schemas/category.py
+
+### Frontend Files:
+    1061 simple_streamlit.py
+     653 enhanced_context_standalone.py
+    1714 total
+
+### Total Project Size:
+   36658 total
