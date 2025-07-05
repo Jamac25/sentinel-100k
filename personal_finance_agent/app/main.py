@@ -17,10 +17,10 @@ import time
 from app.core.config import settings
 from app.db.init_db import init_db, get_db, engine, Base
 from app.services.scheduler_service import scheduler_service
+from app.services.event_bus import event_bus
 
 # Import API routers
-from app.api import auth, transactions, categories, dashboard
-# from app.api.advanced_intelligence import router as advanced_intelligence_router
+from app.api import auth, transactions, categories, dashboard, intelligence, watchdog
 
 # Luo tietokantataulut
 Base.metadata.create_all(bind=engine)
@@ -47,6 +47,10 @@ async def lifespan(app: FastAPI):
         logger.info("Initializing database...")
         init_db()
         
+        # Start event bus
+        logger.info("Starting event bus...")
+        await event_bus.start()
+        
         # Start scheduler service
         logger.info("Starting scheduler service...")
         await scheduler_service.start()
@@ -66,6 +70,10 @@ async def lifespan(app: FastAPI):
         # Stop scheduler service
         await scheduler_service.stop()
         logger.info("Scheduler service stopped")
+        
+        # Stop event bus
+        await event_bus.stop()
+        logger.info("Event bus stopped")
         
     except Exception as e:
         logger.error(f"Error during shutdown: {e}")
@@ -130,12 +138,11 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Include API routers
 app.include_router(auth.router, prefix="/api/v1")
-# app.include_router(documents.router, prefix="/api/v1")
 app.include_router(transactions.router, prefix="/api/v1")
 app.include_router(categories.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
-# app.include_router(guardian.router, prefix="/api/v1")
-# app.include_router(advanced_intelligence_router, prefix="/api/v1")
+app.include_router(intelligence.router, prefix="/api/v1")
+app.include_router(watchdog.router, prefix="/api/v1")
 
 
 # Root endpoint
@@ -156,7 +163,9 @@ async def root():
             "Sentinel Learning Engine™",
             "Income Stream Intelligence™",
             "Liabilities Insight™",
-            "Idea Engine™"
+            "Idea Engine™",
+            "Event-Driven Architecture",
+            "Real-time Automation"
         ]
     }
 
@@ -168,7 +177,12 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": "2024-01-01T00:00:00Z",
-        "version": "2.0.0"
+        "version": "2.0.0",
+        "services": {
+            "database": "connected",
+            "scheduler": scheduler_service.get_scheduler_status(),
+            "event_bus": event_bus.get_stats()
+        }
     }
 
 
@@ -187,7 +201,10 @@ async def api_info():
             "documents": "/api/v1/documents",
             "transactions": "/api/v1/transactions",
             "categories": "/api/v1/categories",
-            "dashboard": "/api/v1/dashboard"
+            "dashboard": "/api/v1/dashboard",
+            "intelligence": "/api/v1/intelligence",
+            "watchdog": "/api/v1/watchdog",
+            "learning": "/api/v1/learning"
         },
         "features": [
             "JWT Authentication",
@@ -196,7 +213,9 @@ async def api_info():
             "Financial Analytics Dashboard",
             "Goal Tracking",
             "Smart Insights",
-            "Finnish Localization"
+            "Finnish Localization",
+            "Event-Driven Architecture",
+            "Real-time Automation"
         ],
         "documentation": {
             "interactive": "/docs",
@@ -212,15 +231,15 @@ async def api_status():
         "status": "operational",
         "services": {
             "authentication": "active",
-            "transactions": "active", 
+            "transactions": "active",
             "categories": "active",
             "dashboard": "active",
-            "documents": "active",
-            "guardian": "active",
-            "advanced_intelligence": "active"
+            "scheduler": "active" if scheduler_service.is_running else "inactive",
+            "event_bus": "active" if event_bus.is_running else "inactive",
+            "database": "connected"
         },
-        "database": "connected",
-        "version": "2.0.0"
+        "event_bus_stats": event_bus.get_stats(),
+        "scheduler_stats": scheduler_service.get_scheduler_status()
     }
 
 

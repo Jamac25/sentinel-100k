@@ -7,17 +7,20 @@ This module contains all the API route handlers organized by functionality:
 - transactions: Transaction CRUD and categorization
 - categories: Category management and statistics
 - dashboard: Financial analytics and insights
+- intelligence: AI services and proactive features
+- watchdog: Real-time monitoring and alerts
 
 All routers are available for import and inclusion in the main FastAPI application.
 """
 
 # Import all API routers for easy access
-from . import auth, transactions, categories, dashboard #, documents
+from . import auth, transactions, categories, dashboard, intelligence, watchdog
 
 __all__ = [
     "auth",
-    "documents", 
     "transactions",
     "categories",
-    "dashboard"
+    "dashboard",
+    "intelligence",
+    "watchdog"
 ]

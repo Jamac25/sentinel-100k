@@ -226,6 +226,54 @@ async def get_learning_insights(db=Depends(get_db), current_user=Depends(get_cur
         logger.error(f"Virhe oppimisen oivallusten haussa: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/learning/status", response_model=None)
+async def get_dynamic_status(db=Depends(get_db), current_user=Depends(get_current_user)):
+    """Hae dynaaminen status käyttäjälle"""
+    try:
+        status_data = learning_engine.get_dynamic_status(current_user.id, db)
+        
+        return {
+            "status": "success",
+            "dynamic_status": status_data,
+            "service": "SentinelStatusSystem™"
+        }
+        
+    except Exception as e:
+        logger.error(f"Virhe dynaamisen statuksen haussa: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/learning/status/history", response_model=None)
+async def get_status_history(db=Depends(get_db), current_user=Depends(get_current_user)):
+    """Hae statushistoria käyttäjälle"""
+    try:
+        history = learning_engine.get_status_history(current_user.id)
+        
+        return {
+            "status": "success",
+            "status_history": history,
+            "total_entries": len(history)
+        }
+        
+    except Exception as e:
+        logger.error(f"Virhe statushistorian haussa: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/learning/status/contextual", response_model=None)
+async def get_contextual_status(user_profile: Dict[str, Any], db=Depends(get_db), current_user=Depends(get_current_user)):
+    """Hae kontekstuaalinen status käyttäjäprofiilin perusteella"""
+    try:
+        contextual_status = learning_engine.get_contextual_status(user_profile)
+        
+        return {
+            "status": "success",
+            "contextual_status": contextual_status,
+            "user_profile": user_profile
+        }
+        
+    except Exception as e:
+        logger.error(f"Virhe kontekstuaalisen statuksen haussa: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/learning/export", response_model=None)
 async def export_learning_data(db=Depends(get_db), current_user=Depends(get_current_user)):
     """Vie käyttäjän oppimisdata"""

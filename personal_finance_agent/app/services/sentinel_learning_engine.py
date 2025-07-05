@@ -32,7 +32,271 @@ class UserBehaviorPattern:
         self.motivation_triggers = []
         self.effectiveness_scores = defaultdict(float)
         self.learning_rate = 0.1
+        self.status_history = []  # Lisätty statushistoria
+
+class SentinelStatusSystem:
+    """Dynaaminen statussysteemi käyttäjälle"""
+    
+    def __init__(self):
+        self.dimensions = {
+            'savings_discipline': 0.0,
+            'income_growth': 0.0,
+            'goal_orientation': 0.0,
+            'financial_literacy': 0.0,
+            'behavior_change': 0.0
+        }
+        self.status_history = []
+    
+    def _analyze_savings_discipline(self, user_id: int, db: Session) -> float:
+        """Analysoi säästämisdiscipliinin (0-100%)"""
+        try:
+            # Hae viimeisen 3 kuukauden transaktiot
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=90)
+            
+            transactions = db.query(Transaction).filter(
+                Transaction.user_id == user_id,
+                Transaction.transaction_date >= start_date
+            ).all()
+            
+            if not transactions:
+                return 0.0
+            
+            # Laske säästöt vs kulut
+            total_income = sum(t.amount for t in transactions if t.amount > 0)
+            total_expenses = abs(sum(t.amount for t in transactions if t.amount < 0))
+            
+            if total_income == 0:
+                return 0.0
+            
+            savings_rate = (total_income - total_expenses) / total_income
+            
+            # Normalisoi 0-100% skaalaan
+            return max(0.0, min(100.0, savings_rate * 100))
+            
+        except Exception as e:
+            logger.error(f"Virhe säästämisdiscipliinin analyysissä: {e}")
+            return 0.0
+    
+    def _analyze_income_growth(self, user_id: int, db: Session) -> float:
+        """Analysoi tulokasvun (0-100%)"""
+        try:
+            # Hae viimeisen 6 kuukauden tulot
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=180)
+            
+            transactions = db.query(Transaction).filter(
+                Transaction.user_id == user_id,
+                Transaction.transaction_date >= start_date,
+                Transaction.amount > 0
+            ).all()
+            
+            if not transactions:
+                return 0.0
+            
+            # Ryhmittele kuukausittain
+            monthly_income = defaultdict(float)
+            for t in transactions:
+                month_key = t.transaction_date.strftime('%Y-%m')
+                monthly_income[month_key] += t.amount
+            
+            if len(monthly_income) < 2:
+                return 0.0
+            
+            # Laske kasvutrendi
+            months = sorted(monthly_income.keys())
+            incomes = [monthly_income[m] for m in months]
+            
+            if len(incomes) >= 2:
+                growth_rate = (incomes[-1] - incomes[0]) / incomes[0] if incomes[0] > 0 else 0
+                # Normalisoi 0-100% skaalaan (0% = ei kasvua, 100% = 100% kasvua)
+                return max(0.0, min(100.0, growth_rate * 50))
+            
+            return 0.0
+            
+        except Exception as e:
+            logger.error(f"Virhe tulokasvun analyysissä: {e}")
+            return 0.0
+    
+    def _analyze_goal_orientation(self, user_id: int, db: Session) -> float:
+        """Analysoi tavoiteorientaation (0-100%)"""
+        try:
+            # Tämä on yksinkertaistettu versio - oikeassa toteutuksessa
+            # käytettäisiin Goal-mallia
+            pattern = self.learning_engine.user_patterns.get(user_id)
+            if not pattern:
+                return 0.0
+            
+            # Laske tavoiteorientaatio vastausten perusteella
+            total_responses = len(pattern.response_patterns)
+            goal_responses = sum(1 for r in pattern.response_patterns.values() 
+                               if 'goal' in r.get('suggestion_id', '').lower())
+            
+            if total_responses == 0:
+                return 0.0
+            
+            goal_ratio = goal_responses / total_responses
+            return max(0.0, min(100.0, goal_ratio * 100))
+            
+        except Exception as e:
+            logger.error(f"Virhe tavoiteorientaation analyysissä: {e}")
+            return 0.0
+    
+    def _analyze_financial_literacy(self, user_id: int, db: Session) -> float:
+        """Analysoi talouslukutaidon (0-100%)"""
+        try:
+            # Yksinkertaistettu analyysi - oikeassa toteutuksessa
+            # käytettäisiin monimutkaisempia mittareita
+            
+            # Tarkista kategorioiden käyttö
+            transactions = db.query(Transaction).filter(
+                Transaction.user_id == user_id
+            ).all()
+            
+            if not transactions:
+                return 0.0
+            
+            # Laske kategorioiden monipuolisuus
+            categories = set(t.category for t in transactions if t.category)
+            category_diversity = len(categories) / 10  # Normalisoi 10 kategoriaan
+            
+            # Tarkista budjetin noudattaminen
+            pattern = self.learning_engine.user_patterns.get(user_id)
+            if pattern:
+                effectiveness = np.mean(list(pattern.effectiveness_scores.values())) if pattern.effectiveness_scores else 0
+            else:
+                effectiveness = 0
+            
+            # Yhdistä mittarit
+            literacy_score = (category_diversity * 50 + effectiveness * 50)
+            return max(0.0, min(100.0, literacy_score))
+            
+        except Exception as e:
+            logger.error(f"Virhe talouslukutaidon analyysissä: {e}")
+            return 0.0
+    
+    def _analyze_behavior_change(self, user_id: int, db: Session) -> float:
+        """Analysoi käyttäytymismuutoksen (0-100%)"""
+        try:
+            pattern = self.learning_engine.user_patterns.get(user_id)
+            if not pattern:
+                return 0.0
+            
+            # Laske käyttäytymismuutos vastausten perusteella
+            total_responses = len(pattern.response_patterns)
+            positive_responses = sum(1 for r in pattern.response_patterns.values() 
+                                   if r.get('response') in ['accepted', 'partially_followed'])
+            
+            if total_responses == 0:
+                return 0.0
+            
+            change_ratio = positive_responses / total_responses
+            return max(0.0, min(100.0, change_ratio * 100))
+            
+        except Exception as e:
+            logger.error(f"Virhe käyttäytymismuutoksen analyysissä: {e}")
+            return 0.0
+    
+    def _get_savings_status(self, score: float) -> Dict[str, Any]:
+        """Hae säästämisdiscipliinin status"""
+        if score >= 75:
+            return {"title": "💎 Säästölegenda", "description": "Säästät enemmän kuin tarvitsee", "level": 5}
+        elif score >= 50:
+            return {"title": "🏆 Säästömestari", "description": "Säästät paljon, budjetti optimoitu", "level": 4}
+        elif score >= 25:
+            return {"title": "💰 Säästäjä", "description": "Säästät säännöllisesti, budjetti hallinnassa", "level": 3}
+        elif score >= 10:
+            return {"title": "🌱 Säästösiemen", "description": "Aloittaa säästämisen, epäsäännöllisesti", "level": 2}
+        else:
+            return {"title": "🥶 Kulutusjääti", "description": "Ei säästä mitään, kulut ylittävät tulot", "level": 1}
+    
+    def _get_income_status(self, score: float) -> Dict[str, Any]:
+        """Hae tulokasvun status"""
+        if score >= 75:
+            return {"title": "💎 Tulolegenda", "description": "Monipuolinen tulopohja, passiiviset tulot", "level": 5}
+        elif score >= 50:
+            return {"title": "🏢 Yrittäjähenkinen", "description": "Luo uusia tulovirtoja, innovatiivinen", "level": 4}
+        elif score >= 25:
+            return {"title": "💼 Monitulolainen", "description": "Useita tulovirtoja, aktiivinen", "level": 3}
+        elif score >= 10:
+            return {"title": "🚀 Tulokasvaja", "description": "Aloittaa lisätulojen etsimisen", "level": 2}
+        else:
+            return {"title": "😴 Yhden tulon mies", "description": "Vain palkkatulot, ei lisätuloja", "level": 1}
+    
+    def _get_goal_status(self, score: float) -> Dict[str, Any]:
+        """Hae tavoiteorientaation status"""
+        if score >= 75:
+            return {"title": "💎 Tavoitelegenda", "description": "Ylittää tavoitteet, auttaa muita", "level": 5}
+        elif score >= 50:
+            return {"title": "🏆 Tavoitemestari", "description": "Saavuttaa tavoitteita, asettaa uusia", "level": 4}
+        elif score >= 25:
+            return {"title": "📊 Tavoiteseuraaja", "description": "Seuraa edistymistä, päivittää tavoitteita", "level": 3}
+        elif score >= 10:
+            return {"title": "🎯 Tavoiteetsijä", "description": "Asettaa tavoitteita, ei seuraa", "level": 2}
+        else:
+            return {"title": "😵 Tavoitehämärä", "description": "Ei tavoitteita, elää päivä kerrallaan", "level": 1}
+    
+    def _get_literacy_status(self, score: float) -> Dict[str, Any]:
+        """Hae talouslukutaidon status"""
+        if score >= 75:
+            return {"title": "💎 Talouslegenda", "description": "Auttaa muita, luo talousstrategioita", "level": 5}
+        elif score >= 50:
+            return {"title": "📈 Talousasiantuntija", "description": "Sijoittaa, optimoi verotusta", "level": 4}
+        elif score >= 25:
+            return {"title": "🧮 Talouslaskija", "description": "Ymmärtää budjetin, tekee päätöksiä", "level": 3}
+        elif score >= 10:
+            return {"title": "📚 Talousoppilas", "description": "Oppii perusteita, kysyy apua", "level": 2}
+        else:
+            return {"title": "😵 Taloushämärä", "description": "Ei ymmärrä taloutta, ei budjettia", "level": 1}
+    
+    def _get_behavior_status(self, score: float) -> Dict[str, Any]:
+        """Hae käyttäytymismuutoksen status"""
+        if score >= 75:
+            return {"title": "💎 Muutoslegenda", "description": "Inspiroi muita, luo uusia tapoja", "level": 5}
+        elif score >= 50:
+            return {"title": "🏆 Muutosmestari", "description": "Muuttaa käyttäytymistä, auttaa muita", "level": 4}
+        elif score >= 25:
+            return {"title": "🌱 Muutospuunta", "description": "Muuttaa käyttäytymistä, oppii", "level": 3}
+        elif score >= 10:
+            return {"title": "🔄 Muutosetsijä", "description": "Yrittää muuttaa, epäonnistuu", "level": 2}
+        else:
+            return {"title": "😵 Tapojen orja", "description": "Ei muuta käyttäytymistä, vanhat tavat", "level": 1}
+    
+    def _get_overall_status(self, score: float) -> Dict[str, Any]:
+        """Hae yhteisstatuksen"""
+        if score >= 80:
+            return {"title": "💎 Sentinel Legenda", "description": "Talous-AI:n mestari", "level": 5}
+        elif score >= 60:
+            return {"title": "🏆 Sentinel Mestari", "description": "Hyvä taloushallinta", "level": 4}
+        elif score >= 40:
+            return {"title": "💰 Sentinel Säästäjä", "description": "Kehittyvä talousosaaja", "level": 3}
+        elif score >= 20:
+            return {"title": "🌱 Sentinel Aloittelija", "description": "Oppii taloushallintaa", "level": 2}
+        else:
+            return {"title": "🥶 Sentinel Uusi", "description": "Aloittaa talousmatkan", "level": 1}
+    
+    def _get_improvement_areas(self, statuses: Dict) -> List[str]:
+        """Hae parannusalueet"""
+        improvement_areas = []
         
+        for dimension, status in statuses.items():
+            if dimension != 'overall_status' and status.get('level', 0) <= 2:
+                title = status.get('title', 'Tuntematon')
+                improvement_areas.append(f"Paranna {dimension.replace('_', ' ')}: {title}")
+        
+        return improvement_areas
+    
+    def _get_next_milestones(self, statuses: Dict) -> List[str]:
+        """Hae seuraavat milestonet"""
+        milestones = []
+        
+        for dimension, status in statuses.items():
+            if dimension != 'overall_status' and status.get('level', 0) < 5:
+                next_level = status.get('level', 0) + 1
+                milestones.append(f"Seuraava {dimension.replace('_', ' ')}: Taso {next_level}")
+        
+        return milestones
+
 class SentinelLearningEngine:
     """
     Sentinel Learning Engine™ - Kehittynyt oppimismoottori
@@ -50,12 +314,16 @@ class SentinelLearningEngine:
         self.ml_models = {}      # user_id -> ML models
         self.global_insights = {}
         self.learning_history = defaultdict(list)
+        self.status_system = SentinelStatusSystem()  # Lisätty statussysteemi
         
         # ML-mallit
         self.expense_predictor = RandomForestRegressor(n_estimators=100, random_state=42)
         self.anomaly_detector = IsolationForest(contamination=0.1, random_state=42)
         self.behavior_clusterer = KMeans(n_clusters=5, random_state=42)
         self.scaler = StandardScaler()
+        
+        # Yhdistä statussysteemi learning engineen
+        self.status_system.learning_engine = self
         
     def initialize_user_learning(self, user_id: int, db: Session) -> UserBehaviorPattern:
         """Alusta käyttäjän oppimisprofiili"""
@@ -629,4 +897,116 @@ class SentinelLearningEngine:
                 'advanced': total_interactions >= 50
             },
             'personalization_level': 'high' if total_interactions > 20 else 'medium' if total_interactions > 5 else 'low'
-        } 
+        }
+    
+    def get_dynamic_status(self, user_id: int, db: Session) -> Dict[str, Any]:
+        """Hae dynaaminen status käyttäjälle"""
+        try:
+            # Laske 5-dimensionaalinen status
+            savings_score = self.status_system._analyze_savings_discipline(user_id, db)
+            income_score = self.status_system._analyze_income_growth(user_id, db)
+            goal_score = self.status_system._analyze_goal_orientation(user_id, db)
+            literacy_score = self.status_system._analyze_financial_literacy(user_id, db)
+            behavior_score = self.status_system._analyze_behavior_change(user_id, db)
+            
+            # Laske yhteispisteet
+            overall_score = (savings_score + income_score + goal_score + 
+                           literacy_score + behavior_score) / 5
+            
+            # Hae statukset
+            statuses = {
+                'savings_status': self.status_system._get_savings_status(savings_score),
+                'income_status': self.status_system._get_income_status(income_score),
+                'goal_status': self.status_system._get_goal_status(goal_score),
+                'literacy_status': self.status_system._get_literacy_status(literacy_score),
+                'behavior_status': self.status_system._get_behavior_status(behavior_score),
+                'overall_status': self.status_system._get_overall_status(overall_score)
+            }
+            
+            # Tallenna statushistoria
+            status_data = {
+                'timestamp': datetime.now().isoformat(),
+                'user_id': user_id,
+                'dimensions': {
+                    'savings_discipline': savings_score,
+                    'income_growth': income_score,
+                    'goal_orientation': goal_score,
+                    'financial_literacy': literacy_score,
+                    'behavior_change': behavior_score
+                },
+                'overall_score': overall_score,
+                'statuses': statuses
+            }
+            
+            # Lisää statushistoriaan
+            if user_id in self.user_patterns:
+                self.user_patterns[user_id].status_history.append(status_data)
+            
+            return {
+                'status': 'success',
+                'dimensions': {
+                    'savings_discipline': savings_score,
+                    'income_growth': income_score,
+                    'goal_orientation': goal_score,
+                    'financial_literacy': literacy_score,
+                    'behavior_change': behavior_score
+                },
+                'statuses': statuses,
+                'overall_score': overall_score,
+                'improvement_areas': self.status_system._get_improvement_areas(statuses),
+                'next_milestones': self.status_system._get_next_milestones(statuses),
+                'status_history': len(self.user_patterns[user_id].status_history) if user_id in self.user_patterns else 0
+            }
+            
+        except Exception as e:
+            logger.error(f"Virhe dynaamisen statuksen laskennassa: {e}")
+            return {
+                'status': 'error',
+                'message': str(e),
+                'overall_status': self.status_system._get_overall_status(0.0)
+            }
+    
+    def get_status_history(self, user_id: int) -> List[Dict[str, Any]]:
+        """Hae statushistoria käyttäjälle"""
+        if user_id not in self.user_patterns:
+            return []
+        
+        return self.user_patterns[user_id].status_history
+    
+    def get_contextual_status(self, user_profile: Dict[str, Any]) -> str:
+        """Hae kontekstuaalinen status käyttäjäprofiilin perusteella"""
+        try:
+            # Alkoholi-ongelma
+            if user_profile.get('alcohol_issue', False):
+                alcohol_spending = user_profile.get('alcohol_spending', 0)
+                if alcohol_spending > 300:
+                    return "🍺 Alkoholi-ongelman uhri"
+                elif alcohol_spending > 100:
+                    return "🍷 Alkoholi-ongelman hallitsija"
+                else:
+                    return "🥤 Alkoholi-ongelman voittaja"
+            
+            # Laiskuus
+            laziness_level = user_profile.get('laziness_level', 0)
+            if laziness_level > 7:
+                return "😴 Laiskuuden orja"
+            elif laziness_level > 4:
+                return "🔄 Laiskuuden voittaja"
+            else:
+                return "⚡ Aktiivisuuden mestari"
+            
+            # Talousongelmat
+            financial_stress = user_profile.get('financial_stress', 0)
+            if financial_stress > 8:
+                return "😰 Talousstressin uhri"
+            elif financial_stress > 5:
+                return "😤 Talousstressin hallitsija"
+            else:
+                return "😌 Talousrauhan asukas"
+            
+            # Jos ei mitään sopivaa, palauta oletus
+            return "🤔 Status epäselvä"
+                
+        except Exception as e:
+            logger.error(f"Virhe kontekstuaalisen statuksen laskennassa: {e}")
+            return "🤔 Status epäselvä" 

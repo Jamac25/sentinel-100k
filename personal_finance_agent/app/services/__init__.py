@@ -7,6 +7,7 @@ from .document_service import DocumentService
 from .ocr_service import OCREngine, BaseOCRService, TesseractOCRService, GoogleVisionOCRService
 from .categorization_service import TransactionCategorizationService
 from .scheduler_service import SchedulerService, scheduler_service
+from .event_bus import event_bus, EventBus, EventType, Event
 
 __all__ = [
     # Document services
@@ -21,7 +22,13 @@ __all__ = [
     # ML services
     "TransactionCategorizationService",
     
-    # Scheduler services
+    # Automation services
     "SchedulerService",
     "scheduler_service",
+    
+    # Event bus
+    "event_bus",
+    "EventBus",
+    "EventType",
+    "Event",
 ]

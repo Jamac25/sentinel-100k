@@ -437,7 +437,7 @@ class AuthService:
 # Global auth service instance
 auth_service = AuthService()
 
-def get_current_user(db: Session, token: str) -> User:
+def get_current_user(db, token: str):
     """Dependency to get the current user from JWT token."""
     payload = auth_service.verify_token(token)
     if not payload or 'sub' not in payload:
