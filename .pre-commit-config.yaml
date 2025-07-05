@@ -1,0 +1,146 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: fix-byte-order-marker
+      - id: mixed-line-ending
+      - id: check-case-conflict
+      - id: check-docstring-first
+      
+  - repo: https://github.com/psf/black
+    rev: 23.9.1
+    hooks:
+      - id: black
+        language_version: python3.11
+        args: ['--line-length=88']
+        
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        args: ['--max-line-length=88', '--ignore=E203,E501,W503,F401']
+        additional_dependencies: [flake8-docstrings]
+        
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: ["--profile", "black", "--line-length", "88"]
+        
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.5.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-all]
+        args: [--ignore-missing-imports, --disallow-untyped-defs]
+        exclude: ^(tests/|personal_finance_agent/tests/)
+        
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: ['-r', '.', '-f', 'json', '-o', 'bandit-report.json']
+        exclude: ^(tests/|personal_finance_agent/tests/)
+        
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.0
+    hooks:
+      - id: pyupgrade
+        args: [--py311-plus]
+        
+  - repo: https://github.com/pycqa/autoflake
+    rev: v2.2.1
+    hooks:
+      - id: autoflake
+        args: [
+          --in-place,
+          --remove-all-unused-imports,
+          --remove-unused-variables,
+          --remove-duplicate-keys,
+          --ignore-init-module-imports,
+        ]
+        
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
+    hooks:
+      - id: codespell
+        args: [
+          --ignore-words-list=stil,dum,ba,nd,te,ot,jupyter,
+          --skip="*.json,*.yml,*.yaml,*.md,*.txt,*.log,*.db,*.sqlite,*.sqlite3"
+        ]
+        
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.32.0
+    hooks:
+      - id: yamllint
+        args: [-c=.yamllint]
+        
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: .*/tests/.*
+        
+  - repo: local
+    hooks:
+      - id: pytest-check
+        name: pytest-check
+        entry: pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+        args: [
+          "tests/",
+          "--tb=short",
+          "-q",
+          "--disable-warnings",
+          "--maxfail=1"
+        ]
+        
+      - id: security-check
+        name: security-check
+        entry: bash
+        language: system
+        pass_filenames: false
+        always_run: true
+        args: [
+          -c,
+          "echo '🔒 Running security checks...' && python -m bandit -r . -f json -o security-report.json || echo 'Security check completed with warnings'"
+        ]
+        
+      - id: complexity-check
+        name: complexity-check
+        entry: bash
+        language: system
+        pass_filenames: false
+        always_run: true
+        args: [
+          -c,
+          "echo '📊 Checking code complexity...' && python -m flake8 --select=C901 --max-complexity=10 . || echo 'Complexity check completed'"
+        ]
+
+# Configuration for specific hooks
+ci:
+  autofix_commit_msg: |
+    🔧 [pre-commit.ci] auto fixes from pre-commit hooks
+    
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '🔄 [pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false 

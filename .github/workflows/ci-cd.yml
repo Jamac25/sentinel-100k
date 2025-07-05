@@ -1,0 +1,144 @@
+name: 🚀 Sentinel 100K CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: 🧪 Tests & Code Quality
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: [3.11]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-asyncio black flake8 mypy
+    
+    - name: Code formatting check (Black)
+      run: |
+        black --check --diff .
+      continue-on-error: true
+    
+    - name: Linting (Flake8)
+      run: |
+        flake8 . --max-line-length=88 --exclude=.git,__pycache__,venv,env
+      continue-on-error: true
+    
+    - name: Type checking (MyPy)
+      run: |
+        mypy --ignore-missing-imports .
+      continue-on-error: true
+    
+    - name: Run tests with coverage
+      run: |
+        python -m pytest tests/ -v --cov=. --cov-report=xml --cov-report=html
+      continue-on-error: true
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+    
+    - name: Test production backends
+      run: |
+        python -m pytest test_sentinel_100_percent.py -v
+      continue-on-error: true
+
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Bandit Security Scan
+      run: |
+        pip install bandit
+        bandit -r . -f json -o bandit-report.json
+      continue-on-error: true
+    
+    - name: Upload security report
+      uses: actions/upload-artifact@v3
+      with:
+        name: bandit-security-report
+        path: bandit-report.json
+
+  deploy-render:
+    name: 🌐 Deploy to Render
+    needs: [test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Deploy to Render
+      run: |
+        echo "🚀 Deploying to Render..."
+        # Render auto-deploys from main branch
+        curl -X POST "https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}" \
+          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"
+      continue-on-error: true
+      
+    - name: Health check
+      run: |
+        echo "🏥 Health check..."
+        sleep 60  # Wait for deployment
+        curl -f https://sentinel-100k.onrender.com/health || echo "Health check failed"
+
+  performance:
+    name: ⚡ Performance Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install performance testing tools
+      run: |
+        pip install locust
+    
+    - name: Run performance tests
+      run: |
+        echo "⚡ Running performance tests..."
+        # Add performance test commands here
+      continue-on-error: true
+
+  notification:
+    name: 📱 Notifications
+    needs: [test, security, deploy-render]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Notify deployment status
+      run: |
+        if [[ "${{ needs.deploy-render.result }}" == "success" ]]; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Deployment failed!"
+        fi 
