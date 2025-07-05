@@ -7,6 +7,7 @@ from typing import List, Optional
 from pydantic_settings import BaseSettings
 from pydantic import validator, Field
 from dotenv import load_dotenv
+import secrets
 
 # Load environment variables from .env file
 load_dotenv()
@@ -25,9 +26,9 @@ class Settings(BaseSettings):
     database_password: str = "password"
     
     # Security and Authentication
-    secret_key: str = "your-secret-key-change-in-production"
+    secret_key: str = Field(default_factory=lambda: os.getenv('SECRET_KEY', secrets.token_urlsafe(64)))
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    access_token_expire_minutes: int = 15  # Lyhennetty 30:sta 15 minuuttiin
     
     # API Configuration
     api_v1_str: str = "/api/v1"
@@ -35,7 +36,7 @@ class Settings(BaseSettings):
     version: str = "2.0.0"
     host: str = "0.0.0.0"
     port: int = 8000
-    debug: bool = True
+    debug: bool = Field(default_factory=lambda: os.getenv('DEBUG', 'false').lower() == 'true')
     
     # CORS Configuration
     allowed_hosts: List[str] = ["*"]

@@ -44,4 +44,26 @@ python-dotenv>=1.0.0
 transitions>=0.9.0
 
 # Production Server
-gunicorn>=21.2.0 
+gunicorn>=21.2.0
+
+# 🧪 TESTING & DEVELOPMENT
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+
+# 📝 LOGGING & MONITORING
+structlog>=23.1.0
+colorlog>=6.7.0
+
+# 🗄️ CACHING & PERFORMANCE
+redis>=5.0.0
+cachetools>=5.3.0
+
+# 🔒 SECURITY ENHANCEMENTS
+cryptography>=41.0.0
+bcrypt>=4.0.0
+python-multipart>=0.0.6
+
+# 🌐 WEBSOCKETS & REAL-TIME
+websockets>=12.0 

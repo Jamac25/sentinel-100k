@@ -142,7 +142,7 @@ class AuthService:
         if not self._is_password_strong(user_data.password):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password must be at least 8 characters long and contain uppercase, lowercase, and numbers"
+                detail="Password must be at least 12 characters long and contain uppercase, lowercase, numbers, and special characters"
             )
         
         # Create new user
@@ -331,22 +331,29 @@ class AuthService:
     
     def _is_password_strong(self, password: str) -> bool:
         """
-        Check if password meets strength requirements.
+        Validate password strength with enhanced security requirements.
         
         Args:
             password: Password to validate
             
         Returns:
-            True if password is strong enough
+            True if password meets security requirements
         """
-        if len(password) < 8:
+        if len(password) < 12:  # Korotettu 8:sta 12 merkkiin
             return False
         
-        has_uppercase = any(c.isupper() for c in password)
-        has_lowercase = any(c.islower() for c in password)
+        # Check for required character types
+        has_upper = any(c.isupper() for c in password)
+        has_lower = any(c.islower() for c in password)
         has_digit = any(c.isdigit() for c in password)
+        has_special = any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password)
         
-        return has_uppercase and has_lowercase and has_digit
+        # Check for common weak patterns
+        weak_patterns = ['password', '123456', 'qwerty', 'admin', 'letmein']
+        if any(pattern in password.lower() for pattern in weak_patterns):
+            return False
+        
+        return has_upper and has_lower and has_digit and has_special
     
     def generate_password_reset_token(self, user: User) -> str:
         """

@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 import logging
 import time
+import re
 
 from app.core.config import settings
 from app.db.init_db import init_db, get_db, engine, Base
@@ -92,9 +93,9 @@ app = FastAPI(
 # Add middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict to specific domains
+    allow_origins=settings.allowed_origins,  # Käytä konfiguraatiosta
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -102,6 +103,23 @@ app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=settings.allowed_hosts
 )
+
+
+# Add security middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to all responses."""
+    response = await call_next(request)
+    
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    return response
 
 
 # Add request timing middleware
@@ -112,6 +130,40 @@ async def add_process_time_header(request: Request, call_next):
     response = await call_next(request)
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(f"{process_time:.4f}")
+    return response
+
+
+# Add input validation middleware
+@app.middleware("http")
+async def validate_input(request: Request, call_next):
+    """Validate and sanitize input data."""
+    
+    # Check for malicious patterns in query parameters
+    for param_name, param_value in request.query_params.items():
+        if isinstance(param_value, str):
+            # SQL injection patterns
+            sql_patterns = [
+                r"[';]|--",
+                r"\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION)\b",
+                r"['\";].*(\bOR\b|\bAND\b)",
+            ]
+            
+            # XSS patterns
+            xss_patterns = [
+                r"<script[^>]*>.*?</script>",
+                r"on\w+\s*=",
+                r"javascript:",
+            ]
+            
+            for pattern in sql_patterns + xss_patterns:
+                if re.search(pattern, param_value, re.IGNORECASE):
+                    logger.warning(f"Malicious input detected in query parameter {param_name}: {param_value[:50]}")
+                    return JSONResponse(
+                        status_code=400,
+                        content={"detail": "Invalid input detected"}
+                    )
+    
+    response = await call_next(request)
     return response
 
 

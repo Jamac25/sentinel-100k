@@ -11,6 +11,10 @@
 ✅ AUTOMAATTINEN INTEGRAATIO (Event Bus + Triggers)
 ✅ KAIKKI KEHITTYNEET OMINAISUUDET (All Advanced Features)
 ✅ RENDER PRODUCTION READY
+
+Author: Sentinel 100K Team
+Version: RENDER-100.0.0-AUTO
+License: MIT
 """
 
 import json
@@ -18,6 +22,8 @@ import os
 import time
 import asyncio
 import threading
+import logging
+import sys
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 from pathlib import Path
@@ -28,14 +34,62 @@ from enum import Enum
 from dataclasses import dataclass
 
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator, field_validator
+
+# 📝 STRUCTURED LOGGING SETUP
+def setup_logging():
+    """
+    Setup structured logging for the Sentinel system.
+    
+    Configures logging with different levels for development and production,
+    including file and console handlers with structured formatting.
+    """
+    # Create logs directory
+    Path("logs").mkdir(exist_ok=True)
+    
+    # Configure logging format
+    log_format = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # Create logger
+    logger = logging.getLogger('sentinel_100k')
+    logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
+    
+    # Clear existing handlers
+    logger.handlers.clear()
+    
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(log_format)
+    logger.addHandler(console_handler)
+    
+    # File handler for all logs
+    file_handler = logging.FileHandler('logs/sentinel.log', encoding='utf-8')
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(log_format)
+    logger.addHandler(file_handler)
+    
+    # Error file handler
+    error_handler = logging.FileHandler('logs/errors.log', encoding='utf-8')
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(log_format)
+    logger.addHandler(error_handler)
+    
+    return logger
 
 # 🌍 RENDER ENVIRONMENT CONFIGURATION
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 PORT = int(os.getenv("PORT", 10000))  # Render default port
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+
+# Initialize logging
+logger = setup_logging()
+logger.info("🚀 Sentinel 100K - Structured Logging Initialized")
 
 print(f"🌐 RENDER ENVIRONMENT: {ENVIRONMENT}")
 print(f"🚀 PORT: {PORT}")
@@ -75,6 +129,12 @@ else:
 
 # 🔄 AUTOMAATTINEN INTEGRAATIO - EVENT BUS SYSTEM
 class EventType(Enum):
+    """
+    Enumeration of all possible event types in the Sentinel system.
+    
+    This enum defines all the different types of events that can be published
+    and subscribed to in the event-driven architecture.
+    """
     USER_LOGIN = "user_login"
     NEW_TRANSACTION = "new_transaction"
     BUDGET_EXCEEDED = "budget_exceeded"
@@ -88,6 +148,16 @@ class EventType(Enum):
 
 @dataclass
 class SentinelEvent:
+    """
+    Data class representing an event in the Sentinel system.
+    
+    Attributes:
+        event_type (EventType): The type of event
+        user_id (str): The user ID associated with the event
+        data (Dict[str, Any]): Event-specific data payload
+        timestamp (datetime): When the event occurred
+        source (str): The source system that generated the event
+    """
     event_type: EventType
     user_id: str
     data: Dict[str, Any]
@@ -95,19 +165,41 @@ class SentinelEvent:
     source: str
 
 class SentinelEventBus:
-    """Event bus for cross-service communication"""
+    """
+    Event bus for cross-service communication in the Sentinel system.
+    
+    This class implements a publish-subscribe pattern that allows different
+    services to communicate asynchronously through events.
+    
+    Attributes:
+        subscribers (Dict): Dictionary mapping event types to callback lists
+        event_history (List): List of all events that have been published
+        active_triggers (Dict): Dictionary of active event triggers
+    """
     
     def __init__(self):
+        """Initialize the event bus with empty subscribers and history."""
         self.subscribers = {event_type: [] for event_type in EventType}
         self.event_history = []
         self.active_triggers = {}
         
-    def subscribe(self, event_type: EventType, callback):
-        """Subscribe to events"""
+    def subscribe(self, event_type: EventType, callback) -> None:
+        """
+        Subscribe to a specific event type.
+        
+        Args:
+            event_type (EventType): The type of event to subscribe to
+            callback (Callable): The function to call when the event occurs
+        """
         self.subscribers[event_type].append(callback)
         
-    def publish(self, event: SentinelEvent):
-        """Publish event to all subscribers"""
+    def publish(self, event: SentinelEvent) -> None:
+        """
+        Publish an event to all subscribers.
+        
+        Args:
+            event (SentinelEvent): The event to publish
+        """
         self.event_history.append(event)
         
         # Trigger all subscribers
@@ -118,19 +210,51 @@ class SentinelEventBus:
                 print(f"Error in event callback: {e}")
                 
     def get_recent_events(self, user_id: str, limit: int = 10) -> List[SentinelEvent]:
-        """Get recent events for user"""
+        """
+        Get recent events for a specific user.
+        
+        Args:
+            user_id (str): The user ID to get events for
+            limit (int): Maximum number of events to return
+            
+        Returns:
+            List[SentinelEvent]: List of recent events for the user
+        """
         return [e for e in self.event_history if e.user_id == user_id][-limit:]
 
 # 🌐 UNIFIED CONTEXT SYSTEM
 class SentinelContext:
-    """Unified context for all services"""
+    """
+    Unified context system for all Sentinel services.
+    
+    This class maintains user-specific context data that can be shared
+    across all services in the system.
+    
+    Attributes:
+        event_bus (SentinelEventBus): Reference to the event bus
+        user_contexts (Dict): Dictionary of user contexts
+    """
     
     def __init__(self, event_bus: SentinelEventBus):
+        """
+        Initialize the context system.
+        
+        Args:
+            event_bus (SentinelEventBus): The event bus to use for notifications
+        """
         self.event_bus = event_bus
         self.user_contexts = {}
         
     def get_user_context(self, user_email: str) -> Dict[str, Any]:
-        """Get comprehensive user context"""
+        """
+        Get comprehensive user context, creating if it doesn't exist.
+        
+        Args:
+            user_email (str): The user's email address
+            
+        Returns:
+            Dict[str, Any]: The user's context data
+        """
         if user_email not in self.user_contexts:
             self.user_contexts[user_email] = {
                 "profile": {},
@@ -143,8 +267,14 @@ class SentinelContext:
             }
         return self.user_contexts[user_email]
         
-    def update_context(self, user_email: str, updates: Dict[str, Any]):
-        """Update user context"""
+    def update_context(self, user_email: str, updates: Dict[str, Any]) -> None:
+        """
+        Update user context with new data.
+        
+        Args:
+            user_email (str): The user's email address
+            updates (Dict[str, Any]): The updates to apply
+        """
         context = self.get_user_context(user_email)
         context.update(updates)
         context["last_updated"] = datetime.now()
@@ -160,9 +290,26 @@ class SentinelContext:
 
 # 🤖 ENHANCED AI SERVICES WITH AUTOMATION
 class EnhancedIdeaEngine:
-    """IdeaEngine™ with automation and context awareness"""
+    """
+    Enhanced IdeaEngine™ with automation and context awareness.
+    
+    This class generates personalized income ideas based on user context,
+    budget status, and real-time events.
+    
+    Attributes:
+        event_bus (SentinelEventBus): Event bus for communication
+        context (SentinelContext): User context system
+        daily_themes (Dict): Mapping of weekdays to themes
+    """
     
     def __init__(self, event_bus: SentinelEventBus, context: SentinelContext):
+        """
+        Initialize the enhanced idea engine.
+        
+        Args:
+            event_bus (SentinelEventBus): Event bus for communication
+            context (SentinelContext): User context system
+        """
         self.event_bus = event_bus
         self.context = context
         self.daily_themes = {
@@ -174,8 +321,13 @@ class EnhancedIdeaEngine:
         self.event_bus.subscribe(EventType.BUDGET_EXCEEDED, self.handle_budget_exceeded)
         self.event_bus.subscribe(EventType.WATCHDOG_ALERT, self.handle_watchdog_alert)
         
-    def handle_budget_exceeded(self, event: SentinelEvent):
-        """Automatically generate emergency ideas when budget exceeded"""
+    def handle_budget_exceeded(self, event: SentinelEvent) -> None:
+        """
+        Automatically generate emergency ideas when budget is exceeded.
+        
+        Args:
+            event (SentinelEvent): The budget exceeded event
+        """
         emergency_ideas = self.generate_emergency_ideas(event.user_id, event.data.get("excess_amount", 0))
         
         # Publish emergency ideas event
@@ -187,8 +339,13 @@ class EnhancedIdeaEngine:
             source="idea_engine"
         ))
         
-    def handle_watchdog_alert(self, event: SentinelEvent):
-        """Generate ideas based on watchdog alerts"""
+    def handle_watchdog_alert(self, event: SentinelEvent) -> None:
+        """
+        Generate ideas based on watchdog alerts.
+        
+        Args:
+            event (SentinelEvent): The watchdog alert event
+        """
         risk_level = event.data.get("risk_level", "medium")
         ideas = self.generate_risk_based_ideas(event.user_id, risk_level)
         
@@ -201,7 +358,16 @@ class EnhancedIdeaEngine:
         ))
     
     def generate_emergency_ideas(self, user_email: str, excess_amount: float) -> List[Dict]:
-        """Generate emergency income ideas"""
+        """
+        Generate emergency income ideas for urgent situations.
+        
+        Args:
+            user_email (str): The user's email address
+            excess_amount (float): The amount by which budget was exceeded
+            
+        Returns:
+            List[Dict]: List of emergency income ideas
+        """
         context = self.context.get_user_context(user_email)
         
         # Calculate needed income
@@ -229,7 +395,16 @@ class EnhancedIdeaEngine:
         ]
     
     def generate_risk_based_ideas(self, user_email: str, risk_level: str) -> List[Dict]:
-        """Generate ideas based on risk level"""
+        """
+        Generate ideas based on risk level.
+        
+        Args:
+            user_email (str): The user's email address
+            risk_level (str): The risk level (low, medium, high)
+            
+        Returns:
+            List[Dict]: List of risk-based income ideas
+        """
         if risk_level == "high":
             return self.generate_emergency_ideas(user_email, 200)
         elif risk_level == "medium":
@@ -238,7 +413,15 @@ class EnhancedIdeaEngine:
             return self.get_passive_income_ideas(user_email)
     
     def get_passive_income_ideas(self, user_email: str) -> List[Dict]:
-        """Generate passive income ideas for low risk"""
+        """
+        Generate passive income ideas for low risk situations.
+        
+        Args:
+            user_email (str): The user's email address
+            
+        Returns:
+            List[Dict]: List of passive income ideas
+        """
         return [
             {
                 "title": "Osinkosijoitus strategia",
@@ -252,7 +435,15 @@ class EnhancedIdeaEngine:
         ]
     
     def get_daily_ideas(self, user_email: str) -> dict:
-        """Enhanced daily ideas with context awareness"""
+        """
+        Get enhanced daily ideas with context awareness.
+        
+        Args:
+            user_email (str): The user's email address
+            
+        Returns:
+            dict: Daily ideas with context and automation info
+        """
         context = self.context.get_user_context(user_email)
         weekday = datetime.now().weekday()
         daily_theme = self.daily_themes[weekday]
@@ -643,43 +834,135 @@ class EnhancedLearningEngine:
             "automation_active": True
         }
 
-# 📊 Data Models
+# 📊 Data Models with Validation
 class ChatMessage(BaseModel):
-    message: str
+    """
+    Model for chat messages with validation.
+    
+    Attributes:
+        message (str): The chat message content
+    """
+    message: str = Field(..., min_length=1, max_length=1000, description="Chat message content")
 
 class UserLogin(BaseModel):
-    email: str
-    password: str
+    """
+    Model for user login with validation.
+    
+    Attributes:
+        email (str): User's email address
+        password (str): User's password
+    """
+    email: str = Field(..., pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', description="Valid email address")
+    password: str = Field(..., min_length=6, max_length=100, description="Password (min 6 characters)")
 
 class UserRegister(BaseModel):
-    email: str
-    name: str
-    password: str
+    """
+    Model for user registration with validation.
+    
+    Attributes:
+        email (str): User's email address
+        name (str): User's full name
+        password (str): User's password
+    """
+    email: str = Field(..., pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', description="Valid email address")
+    name: str = Field(..., min_length=2, max_length=100, description="Full name")
+    password: str = Field(..., min_length=6, max_length=100, description="Password (min 6 characters)")
 
 class DeepOnboardingData(BaseModel):
-    name: str
-    email: str
-    age: int
-    profession: str
-    current_savings: float
-    savings_goal: float
-    monthly_income: float
-    monthly_expenses: float
-    skills: List[str]
-    work_experience_years: int
-    education_level: str
-    risk_tolerance: str
-    time_availability_hours: int
-    financial_goals: List[str]
-    debt_amount: Optional[float] = 0
-    investment_experience: str
-    preferred_income_methods: List[str]
+    """
+    Model for deep onboarding data with comprehensive validation.
+    
+    Attributes:
+        name (str): User's full name
+        email (str): User's email address
+        age (int): User's age
+        profession (str): User's profession
+        current_savings (float): Current savings amount
+        savings_goal (float): Target savings goal
+        monthly_income (float): Monthly income
+        monthly_expenses (float): Monthly expenses
+        skills (List[str]): List of user skills
+        work_experience_years (int): Years of work experience
+        education_level (str): Education level
+        risk_tolerance (str): Risk tolerance level
+        time_availability_hours (int): Available hours per week
+        financial_goals (List[str]): List of financial goals
+        debt_amount (Optional[float]): Current debt amount
+        investment_experience (str): Investment experience level
+        preferred_income_methods (List[str]): Preferred income methods
+    """
+    name: str = Field(..., min_length=2, max_length=100, description="Full name")
+    email: str = Field(..., pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', description="Valid email address")
+    age: int = Field(..., ge=18, le=100, description="Age (18-100)")
+    profession: str = Field(..., min_length=2, max_length=100, description="Profession")
+    current_savings: float = Field(..., ge=0, description="Current savings (non-negative)")
+    savings_goal: float = Field(..., gt=0, description="Savings goal (positive)")
+    monthly_income: float = Field(..., ge=0, description="Monthly income (non-negative)")
+    monthly_expenses: float = Field(..., ge=0, description="Monthly expenses (non-negative)")
+    skills: List[str] = Field(..., min_length=1, max_length=20, description="List of skills (1-20 items)")
+    work_experience_years: int = Field(..., ge=0, le=50, description="Work experience years (0-50)")
+    education_level: str = Field(..., pattern=r'^(high_school|bachelor|master|phd|other)$', description="Education level")
+    risk_tolerance: str = Field(..., pattern=r'^(low|medium|high)$', description="Risk tolerance level")
+    time_availability_hours: int = Field(..., ge=1, le=168, description="Available hours per week (1-168)")
+    financial_goals: List[str] = Field(..., min_length=1, max_length=10, description="Financial goals (1-10 items)")
+    debt_amount: Optional[float] = Field(default=0, ge=0, description="Current debt amount (non-negative)")
+    investment_experience: str = Field(..., pattern=r'^(none|beginner|intermediate|advanced)$', description="Investment experience")
+    preferred_income_methods: List[str] = Field(..., min_length=1, max_length=10, description="Preferred income methods")
+
+    @field_validator('savings_goal')
+    def validate_savings_goal(cls, v, values):
+        """Validate that savings goal is greater than current savings."""
+        if 'current_savings' in values.data and v <= values.data['current_savings']:
+            raise ValueError('Savings goal must be greater than current savings')
+        return v
+
+    @field_validator('monthly_expenses')
+    def validate_monthly_expenses(cls, v, values):
+        """Validate that monthly expenses don't exceed income."""
+        if 'monthly_income' in values.data and v > values.data['monthly_income']:
+            raise ValueError('Monthly expenses cannot exceed monthly income')
+        return v
 
 class WeeklyGoal(BaseModel):
-    week_number: int
-    savings_target: float
-    income_target: float
-    challenges: List[str]
+    """
+    Model for weekly goals with validation.
+    
+    Attributes:
+        week_number (int): Week number (1-52)
+        savings_target (float): Weekly savings target
+        income_target (float): Weekly income target
+        challenges (List[str]): List of weekly challenges
+    """
+    week_number: int = Field(..., ge=1, le=52, description="Week number (1-52)")
+    savings_target: float = Field(..., ge=0, description="Weekly savings target (non-negative)")
+    income_target: float = Field(..., ge=0, description="Weekly income target (non-negative)")
+    challenges: List[str] = Field(..., min_items=1, max_items=10, description="Weekly challenges (1-10 items)")
+
+class TransactionData(BaseModel):
+    """
+    Model for transaction data with validation.
+    
+    Attributes:
+        user_email (str): User's email address
+        amount (float): Transaction amount
+        category (str): Transaction category
+        description (str): Transaction description
+    """
+    user_email: str = Field(..., pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', description="Valid email address")
+    amount: float = Field(..., gt=0, description="Transaction amount (positive)")
+    category: str = Field(..., min_length=2, max_length=50, description="Transaction category")
+    description: str = Field(..., min_length=1, max_length=200, description="Transaction description")
+
+class BudgetData(BaseModel):
+    """
+    Model for budget data with validation.
+    
+    Attributes:
+        user_email (str): User's email address
+        excess_amount (float): Amount by which budget was exceeded
+    """
+    user_email: str = Field(..., pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', description="Valid email address")
+    excess_amount: float = Field(..., ge=0, description="Excess amount (non-negative)")
     
 # 🗄️ RENDER DATA STORAGE - PRODUCTION OPTIMIZED
 if ENVIRONMENT == "production":
@@ -719,15 +1002,175 @@ enhanced_idea_engine = EnhancedIdeaEngine(event_bus, context_system)
 enhanced_watchdog = EnhancedWatchdog(event_bus, context_system)
 enhanced_learning_engine = EnhancedLearningEngine(event_bus, context_system)
 
-# Legacy services for compatibility
-render_income_intelligence = RenderIncomeIntelligence()
-render_liabilities_insight = RenderLiabilitiesInsight()
+# 🗄️ CACHING SYSTEM - REDIS-STYLE
+class SentinelCache:
+    """
+    Redis-style caching system for the Sentinel application.
+    
+    Provides in-memory caching with TTL (Time To Live) support,
+    automatic cleanup, and cache statistics.
+    
+    Attributes:
+        cache (Dict): The cache storage dictionary
+        ttl (Dict): Time-to-live tracking for cache entries
+        stats (Dict): Cache statistics
+    """
+    
+    def __init__(self):
+        """Initialize the cache system."""
+        self.cache = {}
+        self.ttl = {}
+        self.stats = {
+            "hits": 0,
+            "misses": 0,
+            "sets": 0,
+            "deletes": 0
+        }
+        self._start_cleanup_thread()
+        
+    def _start_cleanup_thread(self):
+        """Start background thread for cache cleanup."""
+        def cleanup_loop():
+            while True:
+                try:
+                    self._cleanup_expired()
+                    time.sleep(60)  # Cleanup every minute
+                except Exception as e:
+                    logger.error(f"Cache cleanup error: {e}")
+                    
+        cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
+        cleanup_thread.start()
+        
+    def _cleanup_expired(self):
+        """Remove expired cache entries."""
+        current_time = time.time()
+        expired_keys = [
+            key for key, expiry in self.ttl.items() 
+            if current_time > expiry
+        ]
+        
+        for key in expired_keys:
+            self.delete(key)
+            
+    def set(self, key: str, value: Any, ttl_seconds: int = 3600) -> bool:
+        """
+        Set a value in cache with TTL.
+        
+        Args:
+            key (str): Cache key
+            value (Any): Value to cache
+            ttl_seconds (int): Time to live in seconds
+            
+        Returns:
+            bool: True if successful
+        """
+        try:
+            self.cache[key] = value
+            self.ttl[key] = time.time() + ttl_seconds
+            self.stats["sets"] += 1
+            logger.debug(f"Cache SET: {key} (TTL: {ttl_seconds}s)")
+            return True
+        except Exception as e:
+            logger.error(f"Cache SET error: {e}")
+            return False
+            
+    def get(self, key: str) -> Optional[Any]:
+        """
+        Get a value from cache.
+        
+        Args:
+            key (str): Cache key
+            
+        Returns:
+            Optional[Any]: Cached value or None if not found/expired
+        """
+        try:
+            if key in self.cache:
+                # Check if expired
+                if key in self.ttl and time.time() > self.ttl[key]:
+                    self.delete(key)
+                    self.stats["misses"] += 1
+                    return None
+                    
+                self.stats["hits"] += 1
+                logger.debug(f"Cache HIT: {key}")
+                return self.cache[key]
+            else:
+                self.stats["misses"] += 1
+                logger.debug(f"Cache MISS: {key}")
+                return None
+        except Exception as e:
+            logger.error(f"Cache GET error: {e}")
+            return None
+            
+    def delete(self, key: str) -> bool:
+        """
+        Delete a key from cache.
+        
+        Args:
+            key (str): Cache key to delete
+            
+        Returns:
+            bool: True if deleted
+        """
+        try:
+            if key in self.cache:
+                del self.cache[key]
+            if key in self.ttl:
+                del self.ttl[key]
+            self.stats["deletes"] += 1
+            logger.debug(f"Cache DELETE: {key}")
+            return True
+        except Exception as e:
+            logger.error(f"Cache DELETE error: {e}")
+            return False
+            
+    def clear(self) -> bool:
+        """
+        Clear all cache entries.
+        
+        Returns:
+            bool: True if successful
+        """
+        try:
+            self.cache.clear()
+            self.ttl.clear()
+            logger.info("Cache CLEARED")
+            return True
+        except Exception as e:
+            logger.error(f"Cache CLEAR error: {e}")
+            return False
+            
+    def get_stats(self) -> Dict[str, Any]:
+        """
+        Get cache statistics.
+        
+        Returns:
+            Dict[str, Any]: Cache statistics
+        """
+        hit_rate = 0
+        if self.stats["hits"] + self.stats["misses"] > 0:
+            hit_rate = self.stats["hits"] / (self.stats["hits"] + self.stats["misses"])
+            
+        return {
+            "hits": self.stats["hits"],
+            "misses": self.stats["misses"],
+            "sets": self.stats["sets"],
+            "deletes": self.stats["deletes"],
+            "hit_rate": f"{hit_rate:.2%}",
+            "current_size": len(self.cache),
+            "expired_keys": len(self.ttl)
+        }
 
-print("🚀 AUTOMATION SYSTEMS INITIALIZED!")
-print("✅ Event Bus: Active")
-print("✅ Context System: Active") 
-print("✅ Enhanced AI Services: Active")
-print("✅ Real-time Monitoring: Active")
+# Initialize cache
+cache = SentinelCache()
+
+logger.info("🚀 AUTOMATION SYSTEMS INITIALIZED!")
+logger.info("✅ Event Bus: Active")
+logger.info("✅ Context System: Active") 
+logger.info("✅ Enhanced AI Services: Active")
+logger.info("✅ Real-time Monitoring: Active")
+logger.info("✅ Caching System: Active")
 
 def load_data(filename: str) -> dict:
     """Load data from JSON file"""
@@ -1094,72 +1537,100 @@ night_analysis.start_night_analysis()
 
 @app.post("/api/v1/auth/register")
 def register_user(user_data: UserRegister):
-    """Register new user"""
-    users_db = load_data(USERS_DB_FILE)
+    """
+    Register new user with comprehensive error handling.
     
-    # Check if user already exists
-    if user_data.email in users_db:
-        return {"status": "error", "message": "Email already registered"}
-    
-    # Simple password validation
-    if len(user_data.password) < 8:
-        return {"status": "error", "message": "Password must be at least 8 characters long"}
-    
-    # Create new user
-    user_id = f"user_{int(time.time())}"
-    new_user = {
-        "id": user_id,
-        "email": user_data.email,
-        "name": user_data.name,
-        "password": user_data.password,  # In production, hash this
-        "created_at": datetime.now().isoformat(),
-        "is_active": True
-    }
-    
-    users_db[user_data.email] = new_user
-    save_data(USERS_DB_FILE, users_db)
-    
-    return {
-        "status": "success", 
-        "message": "User registered successfully",
-        "user_id": user_id,
-        "email": user_data.email,
-        "name": user_data.name
-    }
+    Args:
+        user_data (UserRegister): Validated registration data
+        
+    Returns:
+        dict: Registration response with user data or error message
+        
+    Raises:
+        HTTPException: For various error conditions
+    """
+    try:
+        users_db = load_data(USERS_DB_FILE)
+        
+        # Check if user already exists
+        if user_data.email in users_db:
+            raise HTTPException(status_code=409, detail="Email already registered")
+        
+        # Create new user
+        user_id = f"user_{int(time.time())}"
+        new_user = {
+            "id": user_id,
+            "email": user_data.email,
+            "name": user_data.name,
+            "password": user_data.password,  # In production, hash this
+            "created_at": datetime.now().isoformat(),
+            "is_active": True
+        }
+        
+        users_db[user_data.email] = new_user
+        save_data(USERS_DB_FILE, users_db)
+        
+        return {
+            "status": "success", 
+            "message": "User registered successfully",
+            "user_id": user_id,
+            "email": user_data.email,
+            "name": user_data.name
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 @app.post("/api/v1/auth/login")
 def login_user(login_data: UserLogin):
-    """Login user"""
-    users_db = load_data(USERS_DB_FILE)
+    """
+    Login user with comprehensive error handling.
     
-    # Check if user exists
-    if login_data.email not in users_db:
-        return {"status": "error", "message": "Invalid email or password"}
-    
-    user = users_db[login_data.email]
-    
-    # Check password (in production, compare hashed)
-    if user["password"] != login_data.password:
-        return {"status": "error", "message": "Invalid email or password"}
-    
-    # Check if user is active
-    if not user.get("is_active", True):
-        return {"status": "error", "message": "Account is deactivated"}
-    
-    # Create session token (simplified)
-    access_token = base64.b64encode(f"{user['id']}:{datetime.now().isoformat()}".encode()).decode()
-    
-    return {
-        "status": "success",
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": user["id"],
-            "email": user["email"], 
-            "name": user["name"],
-            "is_active": user["is_active"]
+    Args:
+        login_data (UserLogin): Validated login credentials
+        
+    Returns:
+        dict: Login response with access token and user data
+        
+    Raises:
+        HTTPException: For various error conditions
+    """
+    try:
+        users_db = load_data(USERS_DB_FILE)
+        
+        # Check if user exists
+        if login_data.email not in users_db:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        user = users_db[login_data.email]
+        
+        # Check password (in production, compare hashed)
+        if user["password"] != login_data.password:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Check if user is active
+        if not user.get("is_active", True):
+            raise HTTPException(status_code=403, detail="Account is deactivated")
+        
+        # Create session token (simplified)
+        access_token = base64.b64encode(f"{user['id']}:{datetime.now().isoformat()}".encode()).decode()
+        
+        return {
+            "status": "success",
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": user["id"],
+                "email": user["email"], 
+                "name": user["name"],
+                "is_active": user["is_active"]
+            }
         }
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
 
 # 🎯 API ENDPOINTS - 100% COMPLETE
 
@@ -1757,8 +2228,6 @@ class RenderLiabilitiesInsight:
 render_idea_engine = RenderIdeaEngine()
 render_watchdog = RenderWatchdog()
 render_learning_engine = RenderLearningEngine()
-render_income_intelligence = RenderIncomeIntelligence()
-render_liabilities_insight = RenderLiabilitiesInsight()
 
 # 💡 ENHANCED AI SERVICES API ENDPOINTS WITH AUTOMATION
 
@@ -2731,10 +3200,6 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         print("WebSocket disconnected")
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
-
 # IntelligentBudgetSystem™ apufunktiot
 def analyze_expense_context(amount: float, category: str, description: str, user_email: str) -> dict:
     """Analysoi kulun kontekstin ja luo AI-insights"""
@@ -2852,3 +3317,12 @@ def generate_quick_income_ideas(shortage: float, user_email: str) -> list:
     })
     
     return ideas 
+
+# PUUTTUVAT MOCK-SERVICE ALUSTUKSET TESTEJÄ JA APIA VARTEN
+render_income_intelligence = RenderIncomeIntelligence()
+render_liabilities_insight = RenderLiabilitiesInsight()
+
+# Auto-run FastAPI uvicornilla
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("sentinel_render_enhanced:app", host="0.0.0.0", port=PORT, reload=False)
