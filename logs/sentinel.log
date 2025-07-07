@@ -24,3 +24,125 @@
 2025-07-06 02:04:49 - sentinel_100k - INFO - ✅ Enhanced AI Services: Active
 2025-07-06 02:04:49 - sentinel_100k - INFO - ✅ Real-time Monitoring: Active
 2025-07-06 02:04:49 - sentinel_100k - INFO - ✅ Caching System: Active
+2025-07-06 03:34:30 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 03:34:30 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 03:46:12 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 03:46:12 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 03:46:12 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 03:46:12 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 03:46:12 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 03:49:15 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 03:49:15 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 03:49:15 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 03:49:15 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 03:49:15 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 03:49:27 - sentinel_100k - ERROR - OpenAI analysis error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 03:49:35 - sentinel_100k - ERROR - Error updating user 2FA: no such column: two_factor_enabled
+2025-07-06 03:49:46 - sentinel_100k - ERROR - Error updating user 2FA: no such column: two_factor_enabled
+2025-07-06 03:50:29 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 03:50:29 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 03:50:29 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 03:50:29 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 03:50:29 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 03:50:40 - sentinel_100k - ERROR - OpenAI analysis error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 04:00:29 - sentinel_100k - ERROR - OpenAI analysis error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 04:00:31 - sentinel_100k - ERROR - OpenAI analysis error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 04:00:34 - sentinel_100k - ERROR - OpenAI analysis error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 04:00:44 - sentinel_100k - ERROR - AI chat error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 04:00:51 - sentinel_100k - ERROR - OpenAI error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 04:01:00 - sentinel_100k - INFO - In-app notification stored for user 2: Testi ilmoitus
+2025-07-06 04:01:05 - sentinel_100k - ERROR - OpenAI analysis error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 04:01:07 - sentinel_100k - INFO - Starting night analysis...
+2025-07-06 04:01:07 - sentinel_100k - ERROR - OpenAI analysis error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 04:01:08 - sentinel_100k - ERROR - OpenAI advice error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 04:01:08 - sentinel_100k - INFO - Night analysis completed for user test@example.com
+2025-07-06 04:01:08 - sentinel_100k - ERROR - OpenAI analysis error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 04:01:08 - sentinel_100k - ERROR - OpenAI advice error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 04:01:08 - sentinel_100k - INFO - Night analysis completed for user matti@example.com
+2025-07-06 04:01:08 - sentinel_100k - INFO - Night analysis completed for all users
+2025-07-06 04:01:14 - sentinel_100k - ERROR - OpenAI error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: your-ope************here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-07-06 04:02:32 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 04:02:32 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 04:02:32 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 04:02:32 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 04:02:32 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 04:02:59 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 04:02:59 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 04:02:59 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 04:02:59 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 04:02:59 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 04:10:44 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 04:10:44 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 04:10:44 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 04:10:44 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 04:10:44 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 04:10:44 - sentinel_100k - INFO - ✅ Smart budget tables initialized
+2025-07-06 04:11:09 - sentinel_100k - INFO - In-app notification stored for user 2: Automaattinen säästäminen aktivoitu!
+2025-07-06 04:11:27 - sentinel_100k - INFO - In-app notification stored for user 2: Säästetty 18.05€!
+2025-07-06 04:11:27 - sentinel_100k - INFO - Auto-savings processed: {'total_saved': 18.05, 'methods': ['Round-up: 0.50€', 'Auto-save 10.0%: 17.55€'], 'success': True}
+2025-07-06 04:11:27 - sentinel_100k - INFO - In-app notification stored for user 2: 🚨 Budjettivaroitus: viihde
+2025-07-06 04:11:27 - sentinel_100k - ERROR - Error sending email notification: 'DatabaseManager' object has no attribute 'get_user_by_id'
+2025-07-06 04:11:27 - sentinel_100k - INFO - Budget alerts triggered: {'alerts': [{'type': 'danger', 'category': 'viihde', 'spent': 175.5, 'budget': 150.0, 'percentage': 117.0, 'message': '⚠️ viihde budjetti 117.0% käytetty!'}], 'actions': ['STOP: Älä kuluta enää viihde kategoriassa tässä kuussa!', 'Siirrä 25.50€ säästöistä', 'Aktivoi hätätila: vain välttämättömät kulut']}
+2025-07-06 04:11:27 - sentinel_100k - INFO - In-app notification stored for user 2: Säästömahdollisuus löydetty!
+2025-07-06 04:19:50 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 04:19:50 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 04:19:50 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 04:19:50 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 04:19:50 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 04:19:50 - sentinel_100k - INFO - ✅ Smart budget tables initialized
+2025-07-06 04:19:50 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 04:19:50 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 04:19:50 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 15:25:54 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 15:25:54 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 15:25:54 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 15:25:54 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 15:25:54 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 15:25:54 - sentinel_100k - INFO - ✅ Smart budget tables initialized
+2025-07-06 15:25:54 - sentinel_100k - INFO - ✅ Missing tables initialized
+2025-07-06 15:25:54 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 15:25:54 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 15:25:54 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 15:31:39 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 15:31:39 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 15:31:39 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 15:31:39 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 15:31:39 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 15:31:39 - sentinel_100k - INFO - ✅ Smart budget tables initialized
+2025-07-06 15:31:39 - sentinel_100k - INFO - ✅ Missing tables initialized
+2025-07-06 15:31:39 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 15:31:39 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 15:31:39 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 15:34:20 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 15:34:20 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 15:34:20 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 15:34:20 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 15:34:20 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 15:34:20 - sentinel_100k - INFO - ✅ Smart budget tables initialized
+2025-07-06 15:34:20 - sentinel_100k - INFO - ✅ Missing tables initialized
+2025-07-06 15:34:20 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 15:34:20 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 15:34:20 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 15:34:48 - sentinel_100k - INFO - In-app notification stored for user 4: Säästetty 5.00€!
+2025-07-06 15:34:48 - sentinel_100k - INFO - Auto-savings processed: {'total_saved': 5.0, 'methods': ['Auto-save 10.0%: 5.00€'], 'success': True}
+2025-07-06 15:35:40 - sentinel_100k - INFO - In-app notification stored for user 4: Automaattinen säästäminen aktivoitu!
+2025-07-06 15:35:50 - sentinel_100k - INFO - In-app notification stored for user 4: Testi ilmoitus
+2025-07-06 15:35:58 - sentinel_100k - INFO - Starting night analysis...
+2025-07-06 15:36:20 - sentinel_100k - INFO - Night analysis completed for user test@example.com
+2025-07-06 15:36:46 - sentinel_100k - INFO - Night analysis completed for user matti@example.com
+2025-07-06 15:37:14 - sentinel_100k - INFO - Night analysis completed for user testuser2@example.com
+2025-07-06 15:37:14 - sentinel_100k - INFO - Night analysis completed for all users
+2025-07-06 16:02:21 - sentinel_100k - INFO - 🚀 Sentinel 100K - 100% Fixed Version Initialized
+2025-07-06 16:02:21 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 16:02:21 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 16:02:21 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 16:02:21 - sentinel_100k - INFO - ✅ Smart budget tables initialized
+2025-07-06 16:02:21 - sentinel_100k - INFO - ✅ Missing tables initialized
+2025-07-06 16:02:21 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 16:02:21 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 16:02:21 - sentinel_100k - INFO - ✅ All enhanced systems initialized
+2025-07-06 16:02:21 - sentinel_100k - INFO - ✅ Smart budget tables initialized
+2025-07-06 16:02:21 - sentinel_100k - INFO - ✅ Missing tables initialized
+2025-07-06 16:02:21 - sentinel_100k - INFO - 🔧 Initializing enhanced systems...
+2025-07-06 16:02:21 - sentinel_100k - INFO - ✅ Enhanced database tables initialized
+2025-07-06 16:02:21 - sentinel_100k - INFO - ✅ All enhanced systems initialized

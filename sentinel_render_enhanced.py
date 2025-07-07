@@ -1550,33 +1550,33 @@ def register_user(user_data: UserRegister):
         HTTPException: For various error conditions
     """
     try:
-        users_db = load_data(USERS_DB_FILE)
-        
-        # Check if user already exists
-        if user_data.email in users_db:
+    users_db = load_data(USERS_DB_FILE)
+    
+    # Check if user already exists
+    if user_data.email in users_db:
             raise HTTPException(status_code=409, detail="Email already registered")
-        
-        # Create new user
-        user_id = f"user_{int(time.time())}"
-        new_user = {
-            "id": user_id,
-            "email": user_data.email,
-            "name": user_data.name,
-            "password": user_data.password,  # In production, hash this
-            "created_at": datetime.now().isoformat(),
-            "is_active": True
-        }
-        
-        users_db[user_data.email] = new_user
-        save_data(USERS_DB_FILE, users_db)
-        
-        return {
-            "status": "success", 
-            "message": "User registered successfully",
-            "user_id": user_id,
-            "email": user_data.email,
-            "name": user_data.name
-        }
+    
+    # Create new user
+    user_id = f"user_{int(time.time())}"
+    new_user = {
+        "id": user_id,
+        "email": user_data.email,
+        "name": user_data.name,
+        "password": user_data.password,  # In production, hash this
+        "created_at": datetime.now().isoformat(),
+        "is_active": True
+    }
+    
+    users_db[user_data.email] = new_user
+    save_data(USERS_DB_FILE, users_db)
+    
+    return {
+        "status": "success", 
+        "message": "User registered successfully",
+        "user_id": user_id,
+        "email": user_data.email,
+        "name": user_data.name
+    }
     except HTTPException:
         raise
     except Exception as e:
@@ -1597,36 +1597,36 @@ def login_user(login_data: UserLogin):
         HTTPException: For various error conditions
     """
     try:
-        users_db = load_data(USERS_DB_FILE)
-        
-        # Check if user exists
-        if login_data.email not in users_db:
+    users_db = load_data(USERS_DB_FILE)
+    
+    # Check if user exists
+    if login_data.email not in users_db:
             raise HTTPException(status_code=401, detail="Invalid email or password")
-        
-        user = users_db[login_data.email]
-        
-        # Check password (in production, compare hashed)
-        if user["password"] != login_data.password:
+    
+    user = users_db[login_data.email]
+    
+    # Check password (in production, compare hashed)
+    if user["password"] != login_data.password:
             raise HTTPException(status_code=401, detail="Invalid email or password")
-        
-        # Check if user is active
-        if not user.get("is_active", True):
+    
+    # Check if user is active
+    if not user.get("is_active", True):
             raise HTTPException(status_code=403, detail="Account is deactivated")
-        
-        # Create session token (simplified)
-        access_token = base64.b64encode(f"{user['id']}:{datetime.now().isoformat()}".encode()).decode()
-        
-        return {
-            "status": "success",
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user": {
-                "id": user["id"],
-                "email": user["email"], 
-                "name": user["name"],
-                "is_active": user["is_active"]
-            }
+    
+    # Create session token (simplified)
+    access_token = base64.b64encode(f"{user['id']}:{datetime.now().isoformat()}".encode()).decode()
+    
+    return {
+        "status": "success",
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user["id"],
+            "email": user["email"], 
+            "name": user["name"],
+            "is_active": user["is_active"]
         }
+    }
     except HTTPException:
         raise
     except Exception as e:

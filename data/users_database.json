@@ -1,0 +1,10 @@
+{
+  "test@example.com": {
+    "id": "user_1751762716",
+    "email": "test@example.com",
+    "name": "Test User",
+    "password": "testpassword123",
+    "created_at": "2025-07-06T03:45:16.797776",
+    "is_active": true
+  }
+}

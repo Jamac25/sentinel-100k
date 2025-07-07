@@ -1,210 +1,487 @@
-# 🎯 SENTINEL 100K - RENDER.COM DEPLOYMENT GUIDE
+# 🚀 Sentinel 100K - Render Käyttöönotto-ohje
 
-## 🚀 Täydellinen opas Render.com-siirtoon
+## 📋 Sisällysluettelo
 
-### 🎯 VAIHE 1: Render-tilin luominen
-
-1. **Mene osoitteeseen**: https://render.com
-2. **Rekisteröidy** GitHub-tilillä (suositeltava)
-3. **Vahvista sähköposti**
-
-### 📂 VAIHE 2: GitHub-repositoryn valmistelu
-
-1. **Luo uusi repository GitHubissa** nimellä `sentinel-100k`
-2. **Lataa kaikki tiedostot** repositoryyn:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit: Sentinel 100K complete"
-   git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/sentinel-100k.git
-   git push -u origin main
-   ```
-
-### 🗄️ VAIHE 3: Tietokannan luominen
-
-1. **Render Dashboardissa** → "New" → "PostgreSQL"
-2. **Asetukset**:
-   - Name: `sentinel-db`
-   - Database: `sentinel_100k`
-   - User: `sentinel_user`
-   - Plan: **Free** (512MB)
-3. **Luo tietokanta** → Odota 2-3 minuuttia
-
-### 🌐 VAIHE 4: Web Service -luominen
-
-1. **Render Dashboardissa** → "New" → "Web Service"
-2. **Yhdistä GitHub repository** `sentinel-100k`
-3. **Asetukset**:
-   
-   **Basic Settings:**
-   - Name: `sentinel-100k`
-   - Environment: `Python 3`
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command: `uvicorn sentinel_render_ready:app --host 0.0.0.0 --port $PORT`
-   
-   **Advanced Settings:**
-   - Plan: **Free** (750 hours/month)
-   - Auto-Deploy: ✅ **Enabled**
-
-### ⚙️ VAIHE 5: Environment Variables
-
-Render Dashboardissa → Your Web Service → "Environment":
-
-```bash
-DATABASE_URL=postgresql://username:password@hostname:port/sentinel_100k
-SECRET_KEY=your-secret-key-here
-ENVIRONMENT=production
-DEBUG=false
-```
-
-**Tietokannan URL**:
-1. Mene tietokanta-serviceen
-2. Kopioi "External Database URL"
-3. Liitä se `DATABASE_URL` -muuttujaan
-
-### 🎯 VAIHE 6: Deployment
-
-1. **Deploy** → Render käynnistää automaattisesti
-2. **Odota** 5-10 minuuttia buildille
-3. **Tarkista** deployment log:
-   ```
-   ✅ Sentinel 100K starting in production mode
-   ✅ Database: postgresql://...
-   ✅ Sentinel 100K production ready!
-   ```
-
-### 🌟 VAIHE 7: Testaus
-
-**Live URL**: `https://sentinel-100k.onrender.com`
-
-**Testaa endpoints**:
-```bash
-# Health check
-curl https://sentinel-100k.onrender.com/health
-
-# API Documentation
-https://sentinel-100k.onrender.com/docs
-
-# Start onboarding
-curl -X POST https://sentinel-100k.onrender.com/api/v1/onboarding/start
-```
-
-## 🎯 OMINAISUUDET RENDERISSÄ
-
-### ✅ Mukana olevat palvelut:
-- **Deep Onboarding** (Syvä käyttöönotto)
-- **7-Week Cycles** (7-viikon syklit)
-- **Night Analysis** (Yöanalyysi)
-- **AI Chat** (Suomenkielinen tekoäly)
-- **PostgreSQL Database** (Pilvitietokanta)
-- **Automatic Backups** (Automaattiset varmuuskopiot)
-
-### 📊 Renderiin optimoitu:
-- **Production-ready** konfiguraatio
-- **PostgreSQL** -tuki
-- **Environment variables** -hallinta
-- **CORS** production-asetukset
-- **Error handling** parannettu
-- **Logging** optimoitu
-
-## 🔧 YLLÄPITO JA PÄIVITYKSET
-
-### 🔄 Automaattiset deploymentit:
-1. **Muokkaa koodia** paikallisesti
-2. **Commit & push** GitHubiin:
-   ```bash
-   git add .
-   git commit -m "Update features"
-   git push
-   ```
-3. **Render** deployaa automaattisesti uuden version
-
-### 📈 Monitorointi:
-- **Logs**: Render Dashboard → Service → Logs
-- **Metrics**: CPU, Memory, Response times
-- **Uptime**: 99.9% SLA ilmaisessa planissa
-
-### 🔄 Skalaus:
-- **Free Plan**: 0.1 CPU, 512MB RAM
-- **Paid Plans**: Enemmän resursseja tarpeen mukaan
-
-## 🎯 KUSTOMOINTI
-
-### 🎨 Domain:
-1. **Custom Domain** → Renderissä
-2. **SSL** automaattisesti mukana
-3. **Esim**: `sentinel100k.fi`
-
-### 📧 Notifications:
-Render → Service Settings → Deploy Notifications:
-- **Slack**
-- **Discord** 
-- **Email**
-
-## 🛡️ TURVALLISUUS
-
-### 🔐 Automaattisesti mukana:
-- **SSL/TLS** encryption
-- **Environment variables** salattu
-- **Database** salaus
-- **DDoS** suojaus
-- **Automatic security updates**
-
-### 🔑 Recommended:
-```bash
-# Generate secure secret key
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-```
-
-## 📱 KÄYTTÖ PRODUCTION-YMPÄRISTÖSSÄ
-
-### 🌐 Live URLs:
-- **Frontend**: `https://sentinel-100k.onrender.com`
-- **API Docs**: `https://sentinel-100k.onrender.com/docs`
-- **Health**: `https://sentinel-100k.onrender.com/health`
-
-### 🎯 API Endpoints:
-```bash
-POST /api/v1/onboarding/start     # Aloita onboarding
-POST /api/v1/onboarding/complete  # Viimeistele onboarding
-GET  /api/v1/cycles/current/{id}  # Nykyinen viikkosykli
-POST /api/v1/chat/complete        # AI-chat suomeksi
-GET  /api/v1/analysis/night/latest # Viimeisin yöanalyysi
-```
-
-## 🎉 VALMIS!
-
-**Sentinel 100K on nyt live Renderissä!**
-
-🔥 **ILMAINEN**: 750 tuntia/kuukausi
-🚀 **NOPEA**: Automaattiset deploymentit
-💾 **VARMA**: PostgreSQL + varmuuskopiot
-🌍 **GLOBAALI**: CDN + SSL mukana
-
-**Live Demo**: https://sentinel-100k.onrender.com
+- [Yleiskatsaus](#yleiskatsaus)
+- [Render-tili](#render-tili)
+- [GitHub Repository](#github-repository)
+- [Käyttöönotto](#käyttöönotto)
+- [Ympäristömuuttujat](#ympäristömuuttujat)
+- [Tietokanta](#tietokanta)
+- [AI-palvelut](#ai-palvelut)
+- [Testaus](#testaus)
+- [Seuranta](#seuranta)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## 🆘 TROUBLESHOOTING
+## 🎯 Yleiskatsaus
 
-### ❌ Build epäonnistuu:
+Tämä ohje kattaa Sentinel 100K -järjestelmän käyttöönoton Render-palveluun. Render on moderni cloud-platform, joka tukee Python-sovelluksia, tietokantoja ja Redis-cachea.
+
+### 🏗️ Järjestelmän komponentit Renderissä
+- **Backend API**: FastAPI-pohjainen REST API
+- **Frontend**: Streamlit-pohjainen käyttöliittymä
+- **Worker**: Taustaprosessit ja ajastukset
+- **PostgreSQL**: Tietokanta
+- **Redis**: Cache ja session storage
+
+---
+
+## 📝 Render-tili
+
+### 1. Tilin luominen
+
+1. Mene [render.com](https://render.com)
+2. Klikkaa "Get Started"
+3. Rekisteröidy GitHub-tilillä
+4. Valitse "Free" tai "Paid" suunnitelma
+
+### 2. Suunnitelmat
+
+**Free Tier (Kokeilu):**
+- 750 tuntia/kuukausi
+- 512 MB RAM per palvelu
+- Shared CPU
+- PostgreSQL 1 GB
+- Redis 25 MB
+
+**Paid Tier (Tuotanto):**
+- $7/kuukausi per palvelu
+- 1 GB RAM per palvelu
+- Dedicated CPU
+- PostgreSQL 1 GB
+- Redis 100 MB
+
+---
+
+## 🔗 GitHub Repository
+
+### 1. Repositoryn valmistelu
+
 ```bash
-# Tarkista requirements.txt
-pip install -r requirements.txt
-
-# Tarkista Python-versio
-python --version  # Pitää olla 3.9+
+# Varmista että kaikki tiedostot on commitattu
+git add .
+git commit -m "Add Render deployment configuration"
+git push origin main
 ```
 
-### ❌ Database connection fails:
-1. Tarkista `DATABASE_URL` environment variable
-2. Varmista että PostgreSQL service on running
-3. Kokeile connection manuaalisesti
+### 2. Tärkeät tiedostot
 
-### ❌ 503 Service Unavailable:
-1. Tarkista deployment logs
-2. Varmista että start command on oikein
-3. Tarkista että port on `$PORT`
+Varmista että seuraavat tiedostot ovat repositoryssa:
 
-**Tuki**: render-community.slack.com 
+```
+sentinel-100k/
+├── render.yaml              # Render konfiguraatio
+├── requirements.txt          # Python riippuvuudet
+├── app/                      # Sovelluskoodi
+├── streamlit_app.py         # Frontend
+├── docs/                     # Dokumentaatio
+└── README.md                # Päädokumentaatio
+```
+
+---
+
+## 🚀 Käyttöönotto
+
+### 1. Blueprint käyttöönotto
+
+1. **Mene Render Dashboard**
+   - Kirjaudu [dashboard.render.com](https://dashboard.render.com)
+
+2. **Luo Blueprint**
+   - Klikkaa "New +"
+   - Valitse "Blueprint"
+   - Klikkaa "Connect" GitHub-tilillesi
+
+3. **Valitse Repository**
+   - Etsi `sentinel-100k` repository
+   - Klikkaa "Connect"
+
+4. **Konfiguroi Blueprint**
+   - Nimi: `sentinel-100k`
+   - Branch: `main`
+   - Klikkaa "Apply"
+
+### 2. Palveluiden luominen
+
+Render luo automaattisesti seuraavat palvelut:
+
+- **sentinel-100k-api** (Web Service)
+- **sentinel-100k-frontend** (Web Service)
+- **sentinel-100k-worker** (Worker Service)
+- **sentinel-db** (PostgreSQL Database)
+- **sentinel-redis** (Redis Cache)
+
+### 3. Käyttöönoton seuranta
+
+```bash
+# Tarkista deploy-tila
+# Mene Render Dashboard -> sentinel-100k-api -> Logs
+```
+
+---
+
+## ⚙️ Ympäristömuuttujat
+
+### 1. API Service (sentinel-100k-api)
+
+Mene **sentinel-100k-api** -> **Environment** ja lisää:
+
+```env
+# Perusasetukset
+ENVIRONMENT=production
+DEBUG=false
+LOG_LEVEL=INFO
+
+# Tietokanta (Render luo automaattisesti)
+DATABASE_URL=postgresql://sentinel_user:password@host:port/sentinel_db
+
+# Redis (Render luo automaattisesti)
+REDIS_URL=redis://host:port
+
+# Tietoturva (Render generoi automaattisesti)
+SECRET_KEY=render-generated-secret
+JWT_SECRET_KEY=render-generated-jwt-secret
+
+# AI-palvelut (lisää manuaalisesti)
+OPENAI_API_KEY=sk-your-openai-api-key
+GOOGLE_APPLICATION_CREDENTIALS=path/to/credentials.json
+
+# OCR-palvelut
+TESSERACT_PATH=/usr/bin/tesseract
+OCR_LANGUAGE=fin+eng
+
+# Tiedostojen käsittely
+UPLOAD_DIR=/opt/render/project/src/uploads
+MAX_FILE_SIZE=10485760
+ALLOWED_EXTENSIONS=jpg,jpeg,png,pdf
+
+# Sähköposti
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+```
+
+### 2. Frontend Service (sentinel-100k-frontend)
+
+```env
+PYTHON_VERSION=3.11.0
+API_BASE_URL=https://sentinel-100k-api.onrender.com
+ENVIRONMENT=production
+```
+
+### 3. Worker Service (sentinel-100k-worker)
+
+```env
+PYTHON_VERSION=3.11.0
+ENVIRONMENT=production
+DATABASE_URL=postgresql://sentinel_user:password@host:port/sentinel_db
+REDIS_URL=redis://host:port
+SECRET_KEY=render-generated-secret
+OPENAI_API_KEY=sk-your-openai-api-key
+LOG_LEVEL=INFO
+```
+
+---
+
+## 🗄️ Tietokanta
+
+### 1. PostgreSQL konfiguraatio
+
+Render luo automaattisesti PostgreSQL-tietokannan:
+
+- **Nimi**: sentinel-db
+- **Käyttäjä**: sentinel_user
+- **Salasana**: Render generoi automaattisesti
+- **Koko**: 1 GB (Free tier)
+
+### 2. Tietokannan alustus
+
+```bash
+# Tietokannan alustus tapahtuu automaattisesti
+# kun API-palvelu käynnistyy ensimmäisen kerran
+```
+
+### 3. Tietokannan hallinta
+
+```bash
+# Mene Render Dashboard -> sentinel-db
+# Klikkaa "Connect" nähdäksesi yhteystiedot
+
+# Tietokannan yhteystiedot:
+Host: host.render.com
+Port: 5432
+Database: sentinel_db
+Username: sentinel_user
+Password: render-generated-password
+```
+
+---
+
+## 🤖 AI-palvelut
+
+### 1. OpenAI API
+
+1. **Hanki API-avain**
+   - Mene [platform.openai.com](https://platform.openai.com)
+   - Luo uusi API-avain
+
+2. **Lisää Renderiin**
+   - Mene sentinel-100k-api -> Environment
+   - Lisää: `OPENAI_API_KEY=sk-your-key`
+
+### 2. Google Vision API
+
+1. **Luo Google Cloud Project**
+   - Mene [console.cloud.google.com](https://console.cloud.google.com)
+   - Ota Google Vision API käyttöön
+
+2. **Luo Service Account**
+   - IAM & Admin -> Service Accounts
+   - Luo uusi service account
+   - Lataa JSON credentials
+
+3. **Lisää Renderiin**
+   - Lisää credentials.json repositoryyn
+   - Lisää ympäristömuuttuja: `GOOGLE_APPLICATION_CREDENTIALS=/opt/render/project/src/credentials.json`
+
+### 3. Paikalliset ML-mallit
+
+```bash
+# ML-mallit koulutetaan automaattisesti
+# kun worker-palvelu käynnistyy ensimmäisen kerran
+```
+
+---
+
+## 🧪 Testaus
+
+### 1. API testaus
+
+```bash
+# Testaa API endpointit
+curl https://sentinel-100k-api.onrender.com/api/v1/health
+
+# Testaa autentikointi
+curl -X POST https://sentinel-100k-api.onrender.com/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@example.com","password":"DemoPass123"}'
+```
+
+### 2. Frontend testaus
+
+```bash
+# Avaa selain
+https://sentinel-100k-frontend.onrender.com
+
+# Testaa demo-tili
+Email: demo@example.com
+Password: DemoPass123
+```
+
+### 3. Tietokanta testaus
+
+```bash
+# Tarkista tietokantayhteys
+# Mene sentinel-db -> Connect -> External Database URL
+psql "postgresql://sentinel_user:password@host:port/sentinel_db"
+
+# Testaa taulut
+\dt
+SELECT COUNT(*) FROM users;
+```
+
+---
+
+## 📊 Seuranta
+
+### 1. Logien seuranta
+
+```bash
+# API logit
+# Mene sentinel-100k-api -> Logs
+
+# Frontend logit
+# Mene sentinel-100k-frontend -> Logs
+
+# Worker logit
+# Mene sentinel-100k-worker -> Logs
+```
+
+### 2. Suorituskyvyn seuranta
+
+```bash
+# Mene palvelu -> Metrics
+# Tarkista:
+# - CPU käyttö
+# - Muistin käyttö
+# - Verkkoliikenne
+# - Response times
+```
+
+### 3. Virheiden seuranta
+
+```bash
+# Mene palvelu -> Logs
+# Etsi ERROR-tason viestejä
+# Tarkista failed deployments
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### 1. Yleisimmät ongelmat
+
+#### Build epäonnistuu
+```bash
+# Tarkista requirements.txt
+# Varmista että kaikki riippuvuudet on listattu
+# Tarkista Python version (3.11.0)
+
+# Tarkista build logit
+# Mene palvelu -> Logs -> Build Logs
+```
+
+#### Sovellus ei käynnisty
+```bash
+# Tarkista startCommand
+# Varmista että portti on $PORT
+# Tarkista ympäristömuuttujat
+
+# Tarkista runtime logit
+# Mene palvelu -> Logs -> Runtime Logs
+```
+
+#### Tietokantayhteys ei toimi
+```bash
+# Tarkista DATABASE_URL
+# Varmista että tietokanta on luotu
+# Tarkista credentials
+
+# Testaa yhteys
+# Mene sentinel-db -> Connect
+```
+
+#### AI-palvelut eivät toimi
+```bash
+# Tarkista API-avaimet
+# Varmista että avaimet on lisätty ympäristömuuttujiin
+# Tarkista API-kutsujen logit
+```
+
+### 2. Debug-tila
+
+```bash
+# Ota debug-tila käyttöön
+# Lisää ympäristömuuttuja: DEBUG=true
+
+# Tarkista yksityiskohtaiset logit
+# Mene palvelu -> Logs
+```
+
+### 3. Palvelun uudelleenkäynnistys
+
+```bash
+# Mene palvelu -> Manual Deploy
+# Klikkaa "Deploy latest commit"
+
+# Tai käynnistä uudelleen
+# Mene palvelu -> Settings -> Restart Service
+```
+
+---
+
+## 📈 Skalaus
+
+### 1. Automaattinen skaalaus
+
+```bash
+# Mene palvelu -> Settings -> Auto-Deploy
+# Ota automaattinen skaalaus käyttöön
+
+# Aseta skaalausrajoitukset
+# Min instances: 1
+# Max instances: 10
+```
+
+### 2. Manuaalinen skaalaus
+
+```bash
+# Mene palvelu -> Settings -> Instance Type
+# Valitse suurempi instanssi:
+# - Starter: 512 MB RAM
+# - Standard: 1 GB RAM
+# - Pro: 2 GB RAM
+```
+
+### 3. Tietokannan skaalaus
+
+```bash
+# Mene sentinel-db -> Settings
+# Valitse suurempi suunnitelma:
+# - Starter: 1 GB
+# - Standard: 10 GB
+# - Pro: 100 GB
+```
+
+---
+
+## 💰 Kustannukset
+
+### Free Tier (Kokeilu)
+- **API Service**: 750h/kk
+- **Frontend Service**: 750h/kk
+- **Worker Service**: 750h/kk
+- **PostgreSQL**: 1 GB
+- **Redis**: 25 MB
+- **Kokonaiskustannus**: $0/kk
+
+### Paid Tier (Tuotanto)
+- **API Service**: $7/kk
+- **Frontend Service**: $7/kk
+- **Worker Service**: $7/kk
+- **PostgreSQL**: $7/kk
+- **Redis**: $7/kk
+- **Kokonaiskustannus**: $35/kk
+
+---
+
+## 📞 Tuki
+
+### Render Support
+- **Dokumentaatio**: [docs.render.com](https://docs.render.com)
+- **Discord**: [discord.gg/render](https://discord.gg/render)
+- **Email**: support@render.com
+
+### Sentinel 100K Support
+- **Dokumentaatio**: [docs.sentinel-100k.com](https://docs.sentinel-100k.com)
+- **GitHub Issues**: [github.com/your-org/sentinel-100k/issues](https://github.com/your-org/sentinel-100k/issues)
+- **Email**: support@sentinel-100k.com
+
+---
+
+## ✅ Käyttöönotto valmis!
+
+Kun olet seurannut tätä ohjetta, sinulla on:
+
+✅ **Täysin toimiva Sentinel 100K -järjestelmä**  
+✅ **Automaattinen skaalaus**  
+✅ **Tuotantovalmiit palvelut**  
+✅ **Tietokanta ja cache**  
+✅ **AI-palvelut integroituna**  
+✅ **Seuranta ja lokitus**  
+
+**URL:t:**
+- **API**: https://sentinel-100k-api.onrender.com
+- **Frontend**: https://sentinel-100k-frontend.onrender.com
+- **Dokumentaatio**: https://docs.sentinel-100k.com
+
+---
+
+**Luotu**: Sentinel 100K Development Team  
+**Versio**: 1.0.0  
+**Päivitetty**: 2024-01-15  
+**Status**: Render Ready ✅ 
