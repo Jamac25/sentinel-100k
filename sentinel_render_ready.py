@@ -807,7 +807,33 @@ def generate_intelligent_response(user_message: str, context: dict) -> dict:
     user_message_lower = user_message.lower()
     
     # Intelligent response based on message content and user context
-    if "säästä" in user_message_lower or "savings" in user_message_lower or "goal" in user_message_lower:
+    if "onboarding" in user_message_lower or "aloita onboarding" in user_message_lower:
+        response = f"""🎯 <b>Onboarding - {context.get('name', 'Käyttäjä')}</b>
+
+Tervetuloa Sentinel 100K onboardingiin! Autan sinua luomaan henkilökohtaisen taloussuunnitelman.
+
+📋 <b>Seuraavat vaiheet:</b>
+
+1️⃣ <b>Perustiedot</b>
+Kirjoita: "Olen [ikä]-vuotias [ammatti]"
+
+2️⃣ <b>Talousasiat</b>
+Kirjoita: "Kuukausituloni on [summa]€ ja menoni [summa]€"
+
+3️⃣ <b>Säästöt ja tavoitteet</b>
+Kirjoita: "Säästöni on [summa]€ ja tavoitteeni [summa]€"
+
+4️⃣ <b>Lisätiedot</b>
+Kerro taidoistasi, kokemuksestasi ja motivaatiostasi
+
+💡 <b>Esimerkkejä:</b>
+• "Olen 30-vuotias ohjelmoija"
+• "Tuloni 3000€, menoni 2000€"
+• "Säästöni 5000€, tavoite 100000€"
+
+Aloitetaan! Kerro ensin ikäsi ja ammattisi. 🚀"""
+    
+    elif "säästä" in user_message_lower or "savings" in user_message_lower or "goal" in user_message_lower:
         response = f"""🎯 <b>Henkilökohtainen säästöanalyysi {context.get('name', 'Käyttäjä')}:</b>
 
 💰 <b>Nykyinen tilanne:</b>
@@ -1127,6 +1153,7 @@ Kirjoita mitä tahansa talousasioista - vastaan henkilökohtaisesti! 💪"""
 • /start - Aloita
 • /dashboard - Näytä dashboard
 • /help - Tämä apu
+• /onboarding - Aloita onboarding
 
 <b>Vapaamuotoiset kysymykset:</b>
 • "Mikä on budjettini?"
@@ -1141,6 +1168,32 @@ Kirjoita mitä tahansa talousasioista - vastaan henkilökohtaisesti! 💪"""
 • Edistyminen: {progress:.1f}%
 
 Kysy mitä tahansa - vastaan henkilökohtaisesti! 🤖"""
+
+    elif "onboarding" in text_lower or "aloita onboarding" in text_lower or "/onboarding" in text_lower:
+        return f"""🎯 <b>Onboarding - {name}</b>
+
+Tervetuloa Sentinel 100K onboardingiin! Autan sinua luomaan henkilökohtaisen taloussuunnitelman.
+
+📋 <b>Seuraavat vaiheet:</b>
+
+1️⃣ <b>Perustiedot</b>
+Kirjoita: "Olen [ikä]-vuotias [ammatti]"
+
+2️⃣ <b>Talousasiat</b>
+Kirjoita: "Kuukausituloni on [summa]€ ja menoni [summa]€"
+
+3️⃣ <b>Säästöt ja tavoitteet</b>
+Kirjoita: "Säästöni on [summa]€ ja tavoitteeni [summa]€"
+
+4️⃣ <b>Lisätiedot</b>
+Kerro taidoistasi, kokemuksestasi ja motivaatiostasi
+
+💡 <b>Esimerkkejä:</b>
+• "Olen 30-vuotias ohjelmoija"
+• "Tuloni 3000€, menoni 2000€"
+• "Säästöni 5000€, tavoite 100000€"
+
+Aloitetaan! Kerro ensin ikäsi ja ammattisi. 🚀"""
 
     else:
         # Use enhanced AI chat for natural language responses
