@@ -955,34 +955,81 @@ def get_telegram_response(text: str, user_id: int, username: str) -> str:
     context_manager = RenderUserContextManager(telegram_email)
     context = context_manager.get_enhanced_context()
 
-    if text.startswith('/start'):
-        return f"""👋 Hei {name}!\n\nTervetuloa Sentinel 100K -talousbottiin. Profiilisi on luotu automaattisesti!\n\nKäytä komentoja kuten /dashboard, /goals, /help tai kysy vapaasti talouskysymyksiä. 🚀"""
-    elif text.startswith('/dashboard'):
-        return f"""📊 <b>Säästödashboard</b> - {name}\n\n💰 <b>Nykyiset säästöt:</b> {current_savings:,.0f}€\n🎯 <b>Tavoite:</b> {savings_goal:,.0f}€\n📈 <b>Edistyminen:</b> {progress:.1f}%\n💪 <b>Jäljellä:</b> {savings_goal-current_savings:,.0f}€\n\n📅 <b>Viikkotilanne:</b>\n• Viikko {context['current_week']}/7 menossa\n• Viikkotavoite: {context['target_income_weekly']:,.0f}€\n• Kuukausitavoite: {context['target_income_monthly']:,.0f}€\n\n🤖 <b>Sentinel tila:</b> {context['watchdog_state'].upper()}\nSeuraan edistymistäsi ja annan personoituja neuvoja!"""
-    elif text.startswith('/goals'):
-        return f"""🎯 <b>Tavoitteesi</b> - {name}\n\n🏆 <b>Päätavoite:</b> {savings_goal:,.0f}€ säästöt\n📅 <b>Aikataulu:</b> 7-viikon intensiivikurssi\n🚀 <b>Strategia:</b> Progressiivinen säästäminen\n\n📈 <b>Viikoittaiset tavoitteet:</b>\n• Viikko 1-2: 300€/vko (Alkeet)\n• Viikko 3-4: 450€/vko (Edistynyt)\n• Viikko 5-6: 600€/vko (Expertti)\n• Viikko 7: 750€/vko (Mestari)\n\n💡 <b>Personoidut ehdotukseni:</b>\n• Freelance projektit (osaaminen: {', '.join(onboarding.get('skills', ['Ohjelmointi']))})\n• Sivutulot verkossa\n• Säästöjen optimointi\n\nKerro lisää tilanteestasi niin annan tarkempia neuvoja! 🎯"""
-    elif text.startswith('/help'):
-        return f"""❓ <b>Sentinel 100K Ohje</b>\n\n🤖 Olen älykkä talousvalmentajasi!\n\n<b>Komennot:</b>\n/start - Aloita alusta\n/dashboard - Säästötilanne\n/goals - Tavoitteesi\n/help - Tämä ohje\n\n<b>Voit kysyä esim:</b>\n• \"Miten säästän nopeammin?\"\n• \"Mitä sivutuloja suosittelet?\"\n• \"Analysoi taloustilannettani\"\n• \"Anna budjetointivinkkejä\"\n\n<b>Erikoisosaaminen:</b>\n• Suomalaiset olosuhteet\n• Personoidut neuvot\n• 7-viikon intensiivikurssi\n• Reaaliaikainen seuranta\n\nKysy rohkeasti mitä tahansa talousasioista! 💰🚀"""
-    # Handle natural language with AI
-    else:
-        # Use enhanced AI for more natural responses
-        if any(word in text.lower() for word in ['hei', 'moi', 'terve', 'hello']):
-            return f"""👋 Hei {name}!\n\nKiva nähdä sinua täällä! Olen Sentinel 100K, älykkä talousvalmentajasi.\n\n🎯 <b>Tänään voimme:</b>\n• Analysoida säästötilannettasi\n• Suunnitella tulojen lisäämistä\n• Optimoida kulujasi\n• Asettaa realistisia tavoitteita\n\nKerro, mikä talousasia sinua kiinnostaa tällä hetkellä? 💰"""
-        elif any(word in text.lower() for word in ['säästä', 'raha', 'tavoite', 'budjetti']):
-            return f"""💰 <b>Talousneuvonta aktiivinen!</b>\n\nHyvä että kysyt säästämisestä! Tässä henkilökohtaisia vinkkejä:\n\n📊 <b>Säästöstrategia:</b>\n• Aseta viikkotavoitteet (aloita 300€/vko)\n• Seuraa kuluja päivittäin\n• Lisää tuloja sivutöillä\n• Automatisoi säästäminen\n\n💡 <b>Nopeat toimenpiteet:</b>\n1. Laske kuukausittaiset kiinteät kulut\n2. Aseta 20% tuloista automaattisäästöön\n3. Etsi yksi uusi tulolähde tällä viikolla\n\nKerro nykyisestä tilanteestasi niin annan tarkempia neuvoja! 🎯"""
+    # Build comprehensive user context for AI
+    user_context = f"""
+=== KÄYTTÄJÄN TÄYDELLINEN KONTEKSTI ===
+👤 Nimi: {name}
+💰 Nykyiset säästöt: {current_savings:,.0f}€
+🎯 Tavoite: {savings_goal:,.0f}€
+📈 Edistyminen: {progress:.1f}%
+📅 Viikko: {context.get('current_week', 1)}/7
+🤖 Watchdog tila: {context.get('watchdog_state', 'Active')}
+💪 Viikkotavoite: {context.get('target_income_weekly', 300):,.0f}€
+📊 Kuukausitavoite: {context.get('target_income_monthly', 3000):,.0f}€
+🎯 Jäljellä tavoitteeseen: {savings_goal - current_savings:,.0f}€
+
+=== AI-ANALYYSI ===
+{context.get('ai_context', {})}
+{context.get('progress_summary', {})}
+{context.get('latest_analysis', {})}
+
+=== KÄYTTÄJÄN KYSYMYS ===
+{text}
+
+=== OHJEISTUS ===
+Vastaa henkilökohtaisesti ja käytännöllisesti. Käytä käyttäjän oikeita tietoja ja anna konkreettisia neuvoja. Jos käyttäjä pyytää dashboardia, analyysiä, vinkkejä, tavoitteita, riskejä tai mitä tahansa talousasioita, vastaa kattavasti ja henkilökohtaisesti. Käytä emojiita ja tee vastauksesta selkeä ja motivoiva.
+"""
+
+    # Use enhanced AI chat endpoint with comprehensive context
+    try:
+        chat_message = ChatMessage(message=user_context)
+        ai_response = enhanced_ai_chat_render(chat_message, user_email=telegram_email)
+        
+        if isinstance(ai_response, dict):
+            response_text = ai_response.get("response", "")
         else:
-            # Generic intelligent response with user context
-            chat_message = ChatMessage(message=text)
-            # Use enhanced AI chat endpoint with user context
-            try:
-                ai_response = enhanced_ai_chat_render(chat_message, user_email=telegram_email)
-                if isinstance(ai_response, dict):
-                    basic_response = ai_response.get("response", "")
-                else:
-                    basic_response = str(ai_response)
-            except Exception as e:
-                basic_response = "(AI-vastaus ei saatavilla juuri nyt)"
-            return f"""🤖 <b>Sentinel 100K vastaa:</b>\n\n{basic_response}\n\n💡 <i>Vinkki:</i> Käytä komentoja kuten /dashboard tai /goals saadaksesi tarkempaa tietoa!\n\nMitä muuta voin auttaa sinua talousasioissa? 💰"""
+            response_text = str(ai_response)
+        
+        # If AI response is empty or generic, provide a fallback
+        if not response_text or len(response_text) < 50:
+            response_text = f"""🤖 <b>Sentinel 100K vastaa:</b>
+
+Hei {name}! Olen analysoinut tilanteesi ja tässä henkilökohtainen vastaukseni:
+
+💰 <b>Nykyinen tilanne:</b>
+• Säästöt: {current_savings:,.0f}€
+• Tavoite: {savings_goal:,.0f}€  
+• Edistyminen: {progress:.1f}%
+• Viikko: {context.get('current_week', 1)}/7
+
+💡 <b>Henkilökohtaiset suositukseni:</b>
+• Jatka säästämistä {context.get('target_income_weekly', 300):,.0f}€/viikko
+• Optimoi kulujasi ja etsi lisätuloja
+• Seuraa edistymistäsi säännöllisesti
+
+Kysy mitä tahansa talousasioista - olen täällä auttamassa! 💪"""
+        
+        return response_text
+        
+    except Exception as e:
+        print(f"❌ AI response error: {e}")
+        # Fallback response with user data
+        return f"""🤖 <b>Sentinel 100K vastaa:</b>
+
+Hei {name}! Tässä henkilökohtainen tilanteesi:
+
+💰 <b>Dashboard:</b>
+• Säästöt: {current_savings:,.0f}€
+• Tavoite: {savings_goal:,.0f}€
+• Edistyminen: {progress:.1f}%
+• Viikko: {context.get('current_week', 1)}/7
+
+💡 <b>Suositukseni:</b>
+• Jatka säästämistä {context.get('target_income_weekly', 300):,.0f}€/viikko
+• Optimoi kulujasi
+• Etsi lisätuloja
+
+Kysy mitä tahansa talousasioista - autan sinua saavuttamaan tavoitteesi! 🚀"""
 
 class TelegramUpdate(BaseModel):
     update_id: int
