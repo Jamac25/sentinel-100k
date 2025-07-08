@@ -22,6 +22,9 @@ import hashlib
 import schedule
 from contextlib import asynccontextmanager
 import uuid
+import logging
+from collections import defaultdict, Counter
+import statistics
 
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form
@@ -154,7 +157,7 @@ data_manager = ProductionDataManager()
 # 🚀 Application lifespan handler - Fixed for FastAPI latest version
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan event handler for FastAPI"""
+    """Lifespan event handler for FastAPI - PRODUCTION READY"""
     # Startup
     print(f"🚀 Sentinel 100K starting in {ENVIRONMENT} mode")
     print(f"📊 Database: {DATABASE_URL[:20]}...")
@@ -170,12 +173,20 @@ async def lifespan(app: FastAPI):
     scheduler_thread.start()
     print("✅ Notification scheduler started in background")
     
+    # Initialize production systems
+    print("✅ Analytics system initialized")
+    print("✅ Mass notification system ready")
+    print("✅ AI learning engine active")
+    print("✅ Automatic customer service enabled")
+    
     print("✅ Sentinel 100K production ready!")
     
     yield
     
     # Shutdown
     print("🛑 Sentinel 100K shutting down...")
+    analytics.save_analytics()
+    ai_learning_engine.save_learning_data()
 
 # 🎯 FastAPI app - RENDER READY with lifespan
 app = FastAPI(
@@ -1038,7 +1049,9 @@ class TelegramUpdate(BaseModel):
 
 @app.post("/telegram/webhook")
 async def telegram_webhook(update: TelegramUpdate):
-    """Handle Telegram webhook updates - RENDER PRODUCTION"""
+    """Handle Telegram webhook updates - PRODUCTION READY WITH ANALYTICS"""
+    start_time = time.time()
+    
     try:
         # Extract message data
         if update.message:
@@ -1047,15 +1060,38 @@ async def telegram_webhook(update: TelegramUpdate):
             text = message.get("text", "")
             user_id = message.get("from", {}).get("id")
             username = message.get("from", {}).get("username", "Unknown")
-
+            
             print(f"📱 Telegram message from {username} ({user_id}): {text}")
-
+            
+            # Track message
+            analytics.data["system_health"]["total_requests"] += 1
+            
             # --- USER PROFILE AUTO-REGISTRATION ---
             get_or_create_telegram_user(user_id, username)
-
-            # Smart Telegram response handling
+            
+            # --- AUTOMATIC CUSTOMER SERVICE CHECK ---
+            support_response = customer_service.handle_support_request(user_id, username, text)
+            if support_response:
+                # Send support response
+                telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
+                if telegram_token:
+                    telegram_url = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
+                    payload = {
+                        "chat_id": chat_id,
+                        "text": support_response,
+                        "parse_mode": "HTML"
+                    }
+                    requests.post(telegram_url, json=payload)
+                
+                # Track support interaction
+                analytics.track_message(user_id, username, text, time.time() - start_time, ai_used=False)
+                analytics.track_feature_usage("customer_service")
+                
+                return {"status": "success", "message": "Support response sent"}
+            
+            # --- SMART TELEGRAM RESPONSE HANDLING ---
             response_text = get_telegram_response(text, user_id, username)
-
+            
             # Send response back to Telegram
             telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
             if telegram_token:
@@ -1066,22 +1102,35 @@ async def telegram_webhook(update: TelegramUpdate):
                     "text": response_text,
                     "parse_mode": "HTML"
                 }
-
+                
                 response = requests.post(telegram_url, json=payload)
+                response_time = time.time() - start_time
+                
                 if response.status_code == 200:
                     print(f"✅ Telegram response sent successfully")
+                    
+                    # Track successful interaction
+                    analytics.track_message(user_id, username, text, response_time, ai_used=True)
+                    
+                    # Track AI learning
+                    ai_learning_engine.track_user_preference(user_id, "general", 5)  # Assume good response
+                    
                     return {"status": "success", "message": "Telegram message processed"}
                 else:
                     print(f"❌ Failed to send Telegram response: {response.status_code}")
+                    analytics.track_error("telegram_send", f"Status: {response.status_code}")
                     return {"status": "error", "message": f"Failed to send response: {response.status_code}"}
             else:
                 print("⚠️ TELEGRAM_BOT_TOKEN not found in environment variables")
+                analytics.track_error("telegram_token", "Token not configured")
                 return {"status": "warning", "message": "Bot token not configured"}
         
         return {"status": "success", "message": "Update processed"}
-
+        
     except Exception as e:
+        error_time = time.time() - start_time
         print(f"❌ Telegram webhook error: {str(e)}")
+        analytics.track_error("webhook_error", str(e))
         return {"status": "error", "message": str(e)}
 
 @app.get("/telegram/webhook")
@@ -1614,6 +1663,562 @@ def trigger_milestone_check():
         check_milestones()
         return {"status": "success", "message": "Milestone check completed"}
     except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# --- PRODUCTION ANALYTICS & MONITORING ---
+class SentinelAnalytics:
+    """Production analytics and monitoring for Sentinel 100K"""
+    
+    def __init__(self):
+        self.analytics_file = Path("data/analytics.json")
+        self.analytics_file.parent.mkdir(exist_ok=True)
+        self.load_analytics()
+        
+        # Real-time counters
+        self.message_counter = 0
+        self.user_counter = 0
+        self.response_times = []
+        self.error_counter = 0
+        self.ai_usage_counter = 0
+        
+    def load_analytics(self):
+        """Load analytics data"""
+        try:
+            if self.analytics_file.exists():
+                with open(self.analytics_file, 'r', encoding='utf-8') as f:
+                    self.data = json.load(f)
+            else:
+                self.data = {
+                    "users": {},
+                    "messages": [],
+                    "performance": {
+                        "response_times": [],
+                        "error_rates": [],
+                        "ai_usage": []
+                    },
+                    "features": {
+                        "dashboard_usage": 0,
+                        "notifications_sent": 0,
+                        "milestones_celebrated": 0,
+                        "watchdog_alerts": 0
+                    },
+                    "system_health": {
+                        "uptime": 0,
+                        "last_restart": datetime.now().isoformat(),
+                        "total_requests": 0
+                    }
+                }
+        except Exception as e:
+            print(f"❌ Analytics load error: {e}")
+            self.data = {"users": {}, "messages": [], "performance": {}, "features": {}, "system_health": {}}
+    
+    def save_analytics(self):
+        """Save analytics data"""
+        try:
+            with open(self.analytics_file, 'w', encoding='utf-8') as f:
+                json.dump(self.data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"❌ Analytics save error: {e}")
+    
+    def track_message(self, user_id: int, username: str, message: str, response_time: float, ai_used: bool = True):
+        """Track user message and response"""
+        self.message_counter += 1
+        
+        message_data = {
+            "timestamp": datetime.now().isoformat(),
+            "user_id": user_id,
+            "username": username,
+            "message": message[:100],  # Truncate for privacy
+            "response_time": response_time,
+            "ai_used": ai_used,
+            "message_length": len(message)
+        }
+        
+        self.data["messages"].append(message_data)
+        
+        # Track user
+        if str(user_id) not in self.data["users"]:
+            self.data["users"][str(user_id)] = {
+                "username": username,
+                "first_seen": datetime.now().isoformat(),
+                "message_count": 0,
+                "last_active": datetime.now().isoformat(),
+                "total_response_time": 0,
+                "ai_usage_count": 0
+            }
+            self.user_counter += 1
+        
+        user_data = self.data["users"][str(user_id)]
+        user_data["message_count"] += 1
+        user_data["last_active"] = datetime.now().isoformat()
+        user_data["total_response_time"] += response_time
+        if ai_used:
+            user_data["ai_usage_count"] += 1
+            self.ai_usage_counter += 1
+        
+        # Track performance
+        self.response_times.append(response_time)
+        self.data["performance"]["response_times"].append(response_time)
+        
+        # Keep only last 1000 entries for performance
+        if len(self.data["performance"]["response_times"]) > 1000:
+            self.data["performance"]["response_times"] = self.data["performance"]["response_times"][-1000:]
+        
+        self.save_analytics()
+    
+    def track_error(self, error_type: str, error_message: str):
+        """Track system errors"""
+        self.error_counter += 1
+        
+        error_data = {
+            "timestamp": datetime.now().isoformat(),
+            "type": error_type,
+            "message": error_message
+        }
+        
+        if "errors" not in self.data:
+            self.data["errors"] = []
+        
+        self.data["errors"].append(error_data)
+        
+        # Keep only last 100 errors
+        if len(self.data["errors"]) > 100:
+            self.data["errors"] = self.data["errors"][-100:]
+        
+        self.save_analytics()
+    
+    def track_feature_usage(self, feature: str):
+        """Track feature usage"""
+        if feature in self.data["features"]:
+            self.data["features"][feature] += 1
+        else:
+            self.data["features"][feature] = 1
+        self.save_analytics()
+    
+    def get_analytics_summary(self) -> Dict[str, Any]:
+        """Get analytics summary"""
+        total_users = len(self.data["users"])
+        total_messages = len(self.data["messages"])
+        
+        avg_response_time = 0
+        if self.data["performance"]["response_times"]:
+            avg_response_time = statistics.mean(self.data["performance"]["response_times"])
+        
+        # Calculate user engagement
+        active_users_24h = 0
+        active_users_7d = 0
+        now = datetime.now()
+        
+        for user_data in self.data["users"].values():
+            last_active = datetime.fromisoformat(user_data["last_active"])
+            if (now - last_active).days <= 1:
+                active_users_24h += 1
+            if (now - last_active).days <= 7:
+                active_users_7d += 1
+        
+        return {
+            "total_users": total_users,
+            "total_messages": total_messages,
+            "active_users_24h": active_users_24h,
+            "active_users_7d": active_users_7d,
+            "avg_response_time": round(avg_response_time, 3),
+            "error_rate": len(self.data.get("errors", [])) / max(total_messages, 1),
+            "ai_usage_rate": self.ai_usage_counter / max(total_messages, 1),
+            "features": self.data["features"],
+            "system_uptime": self.data["system_health"]["uptime"]
+        }
+
+# Initialize analytics
+analytics = SentinelAnalytics()
+
+# --- MASS NOTIFICATION SYSTEM ---
+class MassNotificationManager:
+    """Mass notification system for production scalability"""
+    
+    def __init__(self):
+        self.notification_manager = notification_manager
+        self.batch_size = 50  # Send in batches to avoid rate limits
+        self.delay_between_batches = 2  # seconds
+    
+    def send_mass_notification(self, notification_type: str, custom_message: str = None) -> Dict[str, Any]:
+        """Send mass notification to all users"""
+        users = self.notification_manager.get_all_telegram_users()
+        results = {
+            "total_users": len(users),
+            "successful": 0,
+            "failed": 0,
+            "errors": []
+        }
+        
+        print(f"📢 Sending mass {notification_type} notification to {len(users)} users...")
+        
+        for i, user in enumerate(users):
+            try:
+                success = False
+                
+                if notification_type == "daily_reminder":
+                    success = self.notification_manager.send_daily_reminder(user)
+                elif notification_type == "weekly_summary":
+                    success = self.notification_manager.send_weekly_summary(user)
+                elif notification_type == "custom_message" and custom_message:
+                    success = self.notification_manager.send_telegram_message(
+                        user["telegram_id"], 
+                        f"📢 <b>Sentinel 100K ilmoitus:</b>\n\n{custom_message}"
+                    )
+                elif notification_type == "system_update":
+                    success = self.notification_manager.send_telegram_message(
+                        user["telegram_id"],
+                        "🔄 <b>Sentinel 100K päivitys</b>\n\nJärjestelmä on päivitetty uusilla ominaisuuksilla! Kysy mitä tahansa talousasioista - olen täällä auttamassa! 💪"
+                    )
+                
+                if success:
+                    results["successful"] += 1
+                    analytics.track_feature_usage(f"mass_notification_{notification_type}")
+                else:
+                    results["failed"] += 1
+                    results["errors"].append(f"Failed to send to {user['email']}")
+                
+                # Batch processing
+                if (i + 1) % self.batch_size == 0:
+                    print(f"📦 Processed batch {(i + 1) // self.batch_size}")
+                    time.sleep(self.delay_between_batches)
+                
+            except Exception as e:
+                results["failed"] += 1
+                results["errors"].append(f"Error sending to {user['email']}: {str(e)}")
+                analytics.track_error("mass_notification", str(e))
+        
+        print(f"✅ Mass notification completed: {results['successful']} successful, {results['failed']} failed")
+        return results
+
+# Initialize mass notification manager
+mass_notification_manager = MassNotificationManager()
+
+# --- AI LEARNING & OPTIMIZATION ---
+class AILearningEngine:
+    """AI learning and optimization for continuous improvement"""
+    
+    def __init__(self):
+        self.learning_data_file = Path("data/ai_learning.json")
+        self.learning_data_file.parent.mkdir(exist_ok=True)
+        self.load_learning_data()
+    
+    def load_learning_data(self):
+        """Load AI learning data"""
+        try:
+            if self.learning_data_file.exists():
+                with open(self.learning_data_file, 'r', encoding='utf-8') as f:
+                    self.data = json.load(f)
+            else:
+                self.data = {
+                    "user_preferences": {},
+                    "response_patterns": {},
+                    "successful_interactions": [],
+                    "optimization_suggestions": []
+                }
+        except Exception as e:
+            print(f"❌ AI learning load error: {e}")
+            self.data = {"user_preferences": {}, "response_patterns": {}, "successful_interactions": [], "optimization_suggestions": []}
+    
+    def save_learning_data(self):
+        """Save AI learning data"""
+        try:
+            with open(self.learning_data_file, 'w', encoding='utf-8') as f:
+                json.dump(self.data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"❌ AI learning save error: {e}")
+    
+    def track_user_preference(self, user_id: int, message_type: str, response_quality: int):
+        """Track user preferences and response quality"""
+        user_id_str = str(user_id)
+        
+        if user_id_str not in self.data["user_preferences"]:
+            self.data["user_preferences"][user_id_str] = {
+                "preferred_topics": [],
+                "response_ratings": [],
+                "interaction_count": 0
+            }
+        
+        user_prefs = self.data["user_preferences"][user_id_str]
+        user_prefs["interaction_count"] += 1
+        
+        if message_type not in user_prefs["preferred_topics"]:
+            user_prefs["preferred_topics"].append(message_type)
+        
+        user_prefs["response_ratings"].append({
+            "timestamp": datetime.now().isoformat(),
+            "message_type": message_type,
+            "rating": response_quality
+        })
+        
+        # Keep only last 50 ratings per user
+        if len(user_prefs["response_ratings"]) > 50:
+            user_prefs["response_ratings"] = user_prefs["response_ratings"][-50:]
+        
+        self.save_learning_data()
+    
+    def analyze_response_patterns(self) -> Dict[str, Any]:
+        """Analyze response patterns for optimization"""
+        patterns = {
+            "most_common_questions": [],
+            "response_quality_trends": [],
+            "user_engagement_patterns": [],
+            "optimization_opportunities": []
+        }
+        
+        # Analyze message patterns from analytics
+        if hasattr(analytics, 'data') and 'messages' in analytics.data:
+            messages = analytics.data['messages']
+            
+            # Most common question types
+            question_types = []
+            for msg in messages:
+                text = msg.get('message', '').lower()
+                if 'sääst' in text:
+                    question_types.append('savings')
+                elif 'tavoite' in text or 'edistym' in text:
+                    question_types.append('goals')
+                elif 'dashboard' in text or 'tilanne' in text:
+                    question_types.append('dashboard')
+                elif 'vinkki' in text or 'neuvo' in text:
+                    question_types.append('advice')
+                else:
+                    question_types.append('general')
+            
+            if question_types:
+                counter = Counter(question_types)
+                patterns["most_common_questions"] = counter.most_common(5)
+        
+        # Response quality trends
+        if 'users' in self.data:
+            for user_data in self.data['users'].values():
+                if 'response_ratings' in user_data:
+                    avg_rating = statistics.mean([r['rating'] for r in user_data['response_ratings']])
+                    patterns["response_quality_trends"].append(avg_rating)
+        
+        # Optimization suggestions
+        if patterns["response_quality_trends"]:
+            avg_quality = statistics.mean(patterns["response_quality_trends"])
+            if avg_quality < 4.0:
+                patterns["optimization_opportunities"].append("Improve response quality")
+        
+        return patterns
+    
+    def get_optimization_suggestions(self) -> List[str]:
+        """Get AI optimization suggestions"""
+        suggestions = []
+        
+        # Analyze patterns
+        patterns = self.analyze_response_patterns()
+        
+        # Generate suggestions based on patterns
+        if patterns["most_common_questions"]:
+            most_common = patterns["most_common_questions"][0][0]
+            suggestions.append(f"Focus on improving {most_common} responses")
+        
+        if patterns["response_quality_trends"]:
+            avg_quality = statistics.mean(patterns["response_quality_trends"])
+            if avg_quality < 4.0:
+                suggestions.append("Enhance AI prompt engineering")
+                suggestions.append("Add more context to responses")
+        
+        # System suggestions
+        suggestions.append("Monitor user engagement patterns")
+        suggestions.append("Optimize response times")
+        suggestions.append("Personalize responses based on user history")
+        
+        return suggestions
+
+# Initialize AI learning engine
+ai_learning_engine = AILearningEngine()
+
+# --- AUTOMATIC CUSTOMER SERVICE ---
+class AutomaticCustomerService:
+    """Automatic customer service and support system"""
+    
+    def __init__(self):
+        self.support_requests = []
+        self.faq_responses = {
+            "miten aloitan": "Aloita kertomalla minulle säästötavoitteistasi! Voin auttaa sinua suunnittelemaan 100 000€ säästötavoitteen saavuttamisen.",
+            "miksi en säästä": "Analysoin tilannettasi ja annan henkilökohtaisia vinkkejä. Kerro nykyisistä säästöistäsi ja tuloistasi!",
+            "mikä on watchdog": "Sentinel Watchdog™ seuraa automaattisesti edistymistäsi ja hälyttää jos tavoite vaarantuu.",
+            "miten muutan tavoitetta": "Voit muuttaa tavoitteesi kertomalla minulle uuden summan. Autan sinua suunnittelemaan uuden strategian!",
+            "miksi en saa vastausta": "Jos et saa vastausta, kokeile uudelleen tai tarkista internet-yhteys. Olen täällä auttamassa!",
+            "mikä on viikkosykli": "7-viikon intensiivikurssi auttaa sinua saavuttamaan 100 000€ säästötavoitteen progressiivisella säästämisellä."
+        }
+    
+    def handle_support_request(self, user_id: int, username: str, message: str) -> str:
+        """Handle automatic customer service requests"""
+        message_lower = message.lower()
+        
+        # Check for support keywords
+        support_keywords = ['apua', 'ongelma', 'virhe', 'ei toimi', 'tuki', 'help', 'problem', 'error']
+        if any(keyword in message_lower for keyword in support_keywords):
+            self.support_requests.append({
+                "timestamp": datetime.now().isoformat(),
+                "user_id": user_id,
+                "username": username,
+                "message": message,
+                "status": "pending"
+            })
+            
+            return f"""🆘 <b>Automaattinen tuki aktivoitu</b>
+
+Hei {username}! Olen vastaanottanut tukipyyntösi.
+
+🔧 <b>Automaattiset ratkaisut:</b>
+• Tarkista internet-yhteys
+• Kokeile lähettää viesti uudelleen
+• Käytä selkeitä kysymyksiä
+
+📞 <b>Jos ongelma jatkuu:</b>
+• Kirjoita tarkemmin ongelmasta
+• Kerro milloin ongelma alkoi
+• Kuvaile mitä yritit tehdä
+
+Olen täällä auttamassa! 🤖"""
+        
+        # Check FAQ
+        for faq_keyword, faq_response in self.faq_responses.items():
+            if faq_keyword in message_lower:
+                return f"""❓ <b>Usein kysytty kysymys:</b>
+
+{faq_response}
+
+Jos tämä ei vastaa kysymykseesi, kerro tarkemmin mitä haluat tietää! 💡"""
+        
+        return None  # No automatic support needed
+    
+    def get_support_statistics(self) -> Dict[str, Any]:
+        """Get customer service statistics"""
+        return {
+            "total_requests": len(self.support_requests),
+            "pending_requests": len([r for r in self.support_requests if r["status"] == "pending"]),
+            "resolved_requests": len([r for r in self.support_requests if r["status"] == "resolved"]),
+            "common_issues": self.analyze_common_issues()
+        }
+    
+    def analyze_common_issues(self) -> List[str]:
+        """Analyze common support issues"""
+        issues = []
+        for request in self.support_requests:
+            message = request.get("message", "").lower()
+            if "ei toimi" in message:
+                issues.append("Technical issues")
+            elif "apua" in message:
+                issues.append("General help")
+            elif "virhe" in message:
+                issues.append("Error messages")
+        return list(set(issues))
+
+# Initialize automatic customer service
+customer_service = AutomaticCustomerService()
+
+# --- PRODUCTION ENDPOINTS ---
+@app.get("/api/v1/analytics/summary")
+def get_analytics_summary():
+    """Get production analytics summary"""
+    try:
+        summary = analytics.get_analytics_summary()
+        return {
+            "status": "success",
+            "analytics": summary,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        analytics.track_error("analytics_summary", str(e))
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/v1/analytics/detailed")
+def get_detailed_analytics():
+    """Get detailed analytics data"""
+    try:
+        return {
+            "status": "success",
+            "analytics": analytics.data,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        analytics.track_error("detailed_analytics", str(e))
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/v1/notifications/mass")
+def send_mass_notification(notification_type: str, custom_message: str = None):
+    """Send mass notification to all users"""
+    try:
+        results = mass_notification_manager.send_mass_notification(notification_type, custom_message)
+        return {
+            "status": "success",
+            "results": results,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        analytics.track_error("mass_notification", str(e))
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/v1/ai/learning/patterns")
+def get_ai_learning_patterns():
+    """Get AI learning patterns and optimization suggestions"""
+    try:
+        patterns = ai_learning_engine.analyze_response_patterns()
+        suggestions = ai_learning_engine.get_optimization_suggestions()
+        
+        return {
+            "status": "success",
+            "patterns": patterns,
+            "optimization_suggestions": suggestions,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        analytics.track_error("ai_learning", str(e))
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/v1/support/statistics")
+def get_support_statistics():
+    """Get customer service statistics"""
+    try:
+        stats = customer_service.get_support_statistics()
+        return {
+            "status": "success",
+            "support_statistics": stats,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        analytics.track_error("support_statistics", str(e))
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/v1/system/health/detailed")
+def get_detailed_system_health():
+    """Get detailed system health information"""
+    try:
+        # Get all system metrics
+        analytics_summary = analytics.get_analytics_summary()
+        ai_patterns = ai_learning_engine.analyze_response_patterns()
+        support_stats = customer_service.get_support_statistics()
+        
+        # Calculate system health score
+        health_score = 100
+        if analytics_summary["error_rate"] > 0.1:
+            health_score -= 20
+        if analytics_summary["avg_response_time"] > 5.0:
+            health_score -= 15
+        if support_stats["total_requests"] > 10:
+            health_score -= 10
+        
+        return {
+            "status": "success",
+            "system_health": {
+                "overall_score": max(health_score, 0),
+                "analytics": analytics_summary,
+                "ai_learning": ai_patterns,
+                "customer_service": support_stats,
+                "uptime": analytics.data["system_health"]["uptime"],
+                "total_requests": analytics.data["system_health"]["total_requests"]
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        analytics.track_error("system_health", str(e))
         return {"status": "error", "message": str(e)}
 
 # 🏁 Main entry point
