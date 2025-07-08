@@ -138,4 +138,4 @@ services:
   - type: redis
     name: sentinel-redis
     plan: starter
-    maxmemoryPolicy: allkeys-lru 
+    maxmemoryPolicy: allkeys-lru # Force Render redeploy Tue Jul  8 18:59:46 EEST 2025
