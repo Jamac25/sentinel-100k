@@ -1161,6 +1161,17 @@ async def telegram_webhook_get():
     """Handle Telegram webhook verification"""
     return {"status": "Telegram webhook endpoint is active"}
 
+@app.get("/telegram/test")
+def telegram_test():
+    """Test endpoint for Telegram integration"""
+    return {
+        "status": "telegram_ready",
+        "endpoints": ["POST /telegram/webhook", "GET /telegram/webhook"],
+        "version": "100.1.0",
+        "telegram_token_set": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
+        "message": "Telegram integration is ready!"
+    }
+
 # 🚀 WebSocket for real-time updates
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
