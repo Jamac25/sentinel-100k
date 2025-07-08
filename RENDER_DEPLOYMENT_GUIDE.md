@@ -485,3 +485,26 @@ Kun olet seurannut tätä ohjetta, sinulla on:
 **Versio**: 1.0.0  
 **Päivitetty**: 2024-01-15  
 **Status**: Render Ready ✅ 
+
+from fastapi import FastAPI, Request
+import os
+import httpx
+
+app = FastAPI()
+
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+
+@app.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    # Käsittele Telegramin viesti tässä
+    # Esim. lähetä vastaus takaisin käyttäjälle
+    chat_id = data["message"]["chat"]["id"]
+    text = data["message"].get("text", "")
+
+    # Esimerkki: vastaa aina "Hei, sain viestisi!"
+    reply_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {"chat_id": chat_id, "text": f"Hei, sain viestisi: {text}"}
+    async with httpx.AsyncClient() as client:
+        await client.post(reply_url, json=payload)
+    return {"ok": True} 
