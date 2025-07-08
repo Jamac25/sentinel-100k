@@ -1149,16 +1149,19 @@ async def telegram_webhook(update: TelegramUpdate):
             username = message.get("from", {}).get("username", "Unknown")
             
             print(f"📱 Telegram message from {username} ({user_id}): {text}")
+            print(f"🔍 Chat ID: {chat_id}, User ID: {user_id}")
             
             # Track message
             analytics.data["system_health"]["total_requests"] += 1
             
             # --- USER PROFILE AUTO-REGISTRATION ---
-            get_or_create_telegram_user(user_id, username)
+            user_info = get_or_create_telegram_user(user_id, username)
+            print(f"👤 User profile: {user_info['email']}")
             
             # --- AUTOMATIC CUSTOMER SERVICE CHECK ---
             support_response = customer_service.handle_support_request(user_id, username, text)
             if support_response:
+                print(f"🆘 Support response: {support_response}")
                 # Send support response
                 telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
                 if telegram_token:
@@ -1168,7 +1171,8 @@ async def telegram_webhook(update: TelegramUpdate):
                         "text": support_response,
                         "parse_mode": "HTML"
                     }
-                    requests.post(telegram_url, json=payload)
+                    response = requests.post(telegram_url, json=payload)
+                    print(f"📤 Support response sent: {response.status_code}")
                 
                 # Track support interaction
                 analytics.track_message(user_id, username, text, time.time() - start_time, ai_used=False)
@@ -1177,7 +1181,9 @@ async def telegram_webhook(update: TelegramUpdate):
                 return {"status": "success", "message": "Support response sent"}
             
             # --- SMART TELEGRAM RESPONSE HANDLING ---
+            print(f"🤖 Getting AI response for: {text}")
             response_text = get_telegram_response(text, user_id, username)
+            print(f"🤖 AI response: {response_text[:100]}...")
             
             # Send response back to Telegram
             telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -1190,8 +1196,13 @@ async def telegram_webhook(update: TelegramUpdate):
                     "parse_mode": "HTML"
                 }
                 
+                print(f"📤 Sending to Telegram: {telegram_url}")
+                print(f"📤 Payload: {payload}")
+                
                 response = requests.post(telegram_url, json=payload)
                 response_time = time.time() - start_time
+                
+                print(f"📤 Telegram response: {response.status_code} - {response.text}")
                 
                 if response.status_code == 200:
                     print(f"✅ Telegram response sent successfully")
@@ -1205,6 +1216,7 @@ async def telegram_webhook(update: TelegramUpdate):
                     return {"status": "success", "message": "Telegram message processed"}
                 else:
                     print(f"❌ Failed to send Telegram response: {response.status_code}")
+                    print(f"❌ Response text: {response.text}")
                     analytics.track_error("telegram_send", f"Status: {response.status_code}")
                     return {"status": "error", "message": f"Failed to send response: {response.status_code}"}
             else:
@@ -1217,6 +1229,8 @@ async def telegram_webhook(update: TelegramUpdate):
     except Exception as e:
         error_time = time.time() - start_time
         print(f"❌ Telegram webhook error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         analytics.track_error("webhook_error", str(e))
         return {"status": "error", "message": str(e)}
 
@@ -1243,6 +1257,37 @@ def telegram_test():
         "render_production": True,
         "message": "Telegram integration is ready for production!"
     }
+
+@app.post("/telegram/test-send")
+def test_telegram_send():
+    """Test sending message to Telegram"""
+    try:
+        telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
+        if not telegram_token:
+            return {"status": "error", "message": "TELEGRAM_BOT_TOKEN not found"}
+        
+        # Test sending to a specific chat ID (you can change this)
+        test_chat_id = 6698356764  # Your Telegram ID from logs
+        
+        telegram_url = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
+        payload = {
+            "chat_id": test_chat_id,
+            "text": "🤖 <b>Testi viesti Sentinel 100K:stä!</b>\n\nTämä on testiviesti Render-palvelusta. AI-toiminnot ovat nyt toiminnassa! 🚀",
+            "parse_mode": "HTML"
+        }
+        
+        response = requests.post(telegram_url, json=payload)
+        
+        return {
+            "status": "success" if response.status_code == 200 else "error",
+            "telegram_status": response.status_code,
+            "telegram_response": response.text,
+            "chat_id": test_chat_id,
+            "message": "Test message sent to Telegram"
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.get("/api/v1/notifications/status")
 def notification_status():
