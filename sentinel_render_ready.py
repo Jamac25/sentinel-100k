@@ -173,8 +173,8 @@ async def lifespan(app: FastAPI):
 # 🎯 FastAPI app - RENDER READY with lifespan
 app = FastAPI(
     title="Sentinel 100K - Render Production",
-    description="Complete Finnish Personal Finance AI - PRODUCTION READY",
-    version="100.0.0",
+    description="Complete Finnish Personal Finance AI - SMART TELEGRAM BOT",
+    version="100.1.0",
     docs_url="/docs" if DEBUG else None,  # Hide docs in production
     redoc_url="/redoc" if DEBUG else None,
     lifespan=lifespan
