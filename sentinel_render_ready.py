@@ -13,6 +13,7 @@ import os
 import time
 import asyncio
 import threading
+import requests
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 from pathlib import Path
@@ -838,6 +839,83 @@ def get_goal_progress_render(user_email: str):
             "message": f"Goal tracking failed: {str(e)}",
             "user_email": user_email
         }
+
+# 🚀 TELEGRAM BOT INTEGRATION FOR RENDER
+class TelegramUpdate(BaseModel):
+    update_id: int
+    message: Optional[Dict[str, Any]] = None
+    callback_query: Optional[Dict[str, Any]] = None
+
+@app.post("/telegram/webhook")
+async def telegram_webhook(update: TelegramUpdate):
+    """Handle Telegram webhook updates - RENDER PRODUCTION"""
+    try:
+        # Extract message data
+        if update.message:
+            message = update.message
+            chat_id = message.get("chat", {}).get("id")
+            text = message.get("text", "")
+            user_id = message.get("from", {}).get("id")
+            username = message.get("from", {}).get("username", "Unknown")
+            
+            print(f"📱 Telegram message from {username} ({user_id}): {text}")
+            
+            # Get AI response using the existing chat system
+            chat_message = ChatMessage(message=text)
+            ai_response = complete_ai_chat(chat_message)
+            response_text = ai_response.get("response", "Kiitos viestistäsi! Sentinel 100K on täällä auttamassa sinua saavuttamaan 100k€ tavoitteesi.")
+            
+            # Send response back to Telegram
+            telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
+            if telegram_token:
+                # Send message to Telegram
+                telegram_url = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
+                payload = {
+                    "chat_id": chat_id,
+                    "text": response_text,
+                    "parse_mode": "HTML"
+                }
+                
+                response = requests.post(telegram_url, json=payload)
+                if response.status_code == 200:
+                    print(f"✅ Telegram response sent successfully")
+                    return {"status": "success", "message": "Telegram message processed"}
+                else:
+                    print(f"❌ Failed to send Telegram response: {response.status_code}")
+                    return {"status": "error", "message": f"Failed to send response: {response.status_code}"}
+            else:
+                print("⚠️ TELEGRAM_BOT_TOKEN not found in environment variables")
+                return {"status": "warning", "message": "Bot token not configured"}
+        
+        return {"status": "success", "message": "Update processed"}
+        
+    except Exception as e:
+        print(f"❌ Telegram webhook error: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/telegram/webhook")
+async def telegram_webhook_get():
+    """Handle Telegram webhook verification - RENDER PRODUCTION"""
+    return {
+        "status": "Telegram webhook endpoint is active",
+        "environment": ENVIRONMENT,
+        "version": "100.0.0",
+        "render_production": True,
+        "telegram_ready": bool(os.getenv("TELEGRAM_BOT_TOKEN"))
+    }
+
+@app.get("/telegram/test")
+def telegram_test():
+    """Test endpoint for Telegram integration - RENDER PRODUCTION"""
+    return {
+        "status": "telegram_ready",
+        "endpoints": ["POST /telegram/webhook", "GET /telegram/webhook"],
+        "version": "100.0.0",
+        "environment": ENVIRONMENT,
+        "telegram_token_set": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
+        "render_production": True,
+        "message": "Telegram integration is ready for production!"
+    }
 
 # 🏁 Main entry point
 if __name__ == "__main__":
