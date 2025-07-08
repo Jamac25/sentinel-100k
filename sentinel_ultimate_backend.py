@@ -19,6 +19,7 @@ import os
 import time
 import asyncio
 import sys
+import requests
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 from pathlib import Path
@@ -549,6 +550,64 @@ def update_user_profile(profile: UserProfile):
         "learning_updated": ADVANCED_SERVICES_AVAILABLE,
         "timestamp": datetime.now().isoformat()
     }
+
+# 🚀 TELEGRAM BOT INTEGRATION
+import requests
+
+class TelegramUpdate(BaseModel):
+    update_id: int
+    message: Optional[Dict[str, Any]] = None
+    callback_query: Optional[Dict[str, Any]] = None
+
+@app.post("/telegram/webhook")
+async def telegram_webhook(update: TelegramUpdate):
+    """Handle Telegram webhook updates"""
+    try:
+        # Extract message data
+        if update.message:
+            message = update.message
+            chat_id = message.get("chat", {}).get("id")
+            text = message.get("text", "")
+            user_id = message.get("from", {}).get("id")
+            username = message.get("from", {}).get("username", "Unknown")
+            
+            print(f"📱 Telegram message from {username} ({user_id}): {text}")
+            
+            # Get AI response
+            user_data = get_enhanced_user_data()
+            ai_response = get_enhanced_ai_response(text, user_data)
+            
+            # Send response back to Telegram
+            telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
+            if telegram_token:
+                response_text = ai_response["response"]
+                
+                # Send message to Telegram
+                telegram_url = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
+                payload = {
+                    "chat_id": chat_id,
+                    "text": response_text,
+                    "parse_mode": "HTML"
+                }
+                
+                response = requests.post(telegram_url, json=payload)
+                if response.status_code == 200:
+                    print(f"✅ Telegram response sent successfully")
+                else:
+                    print(f"❌ Failed to send Telegram response: {response.status_code}")
+            
+            return {"status": "success", "message": "Telegram message processed"}
+        
+        return {"status": "success", "message": "Update processed"}
+        
+    except Exception as e:
+        print(f"❌ Telegram webhook error: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/telegram/webhook")
+async def telegram_webhook_get():
+    """Handle Telegram webhook verification"""
+    return {"status": "Telegram webhook endpoint is active"}
 
 # 🔌 Enhanced WebSocket
 @app.websocket("/ws")
