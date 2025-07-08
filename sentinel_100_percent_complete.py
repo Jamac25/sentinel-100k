@@ -31,8 +31,8 @@ from pydantic import BaseModel
 # 🎯 FastAPI app - 100% COMPLETE
 app = FastAPI(
     title="Sentinel 100K - 100% COMPLETE",
-    description="Complete Finnish Personal Finance AI - KAIKKI OMINAISUUDET",
-    version="100.0.0",
+    description="Complete Finnish Personal Finance AI - KAIKKI OMINAISUUDET + TELEGRAM",
+    version="100.1.0",
     docs_url="/docs"
 )
 
