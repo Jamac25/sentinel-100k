@@ -21,6 +21,7 @@ import base64
 import hashlib
 import schedule
 from contextlib import asynccontextmanager
+import uuid
 
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form
@@ -162,6 +163,12 @@ async def lifespan(app: FastAPI):
     # Create necessary directories
     data_manager.data_dir.mkdir(exist_ok=True)
     data_manager.cv_uploads_dir.mkdir(exist_ok=True)
+    
+    # Setup and start notification scheduler in background
+    setup_notification_scheduler()
+    scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
+    scheduler_thread.start()
+    print("✅ Notification scheduler started in background")
     
     print("✅ Sentinel 100K production ready!")
     
@@ -842,139 +849,140 @@ def get_goal_progress_render(user_email: str):
 
 # 🚀 TELEGRAM BOT INTEGRATION FOR RENDER
 
+def get_or_create_telegram_user(telegram_id: int, username: str = None) -> dict:
+    """Get or create a user profile for a Telegram user. Returns user dict with email as key."""
+    users_data = data_manager.get_user_data()
+    onboarding_data = data_manager.get_onboarding_data()
+    telegram_email = f"telegram_{telegram_id}@sentinel100k.com"
+    onboarding_key = f"onboarding_{telegram_email}"
+
+    # Check if user exists
+    if telegram_email in users_data:
+        user_profile = users_data[telegram_email]
+        onboarding_profile = onboarding_data.get(onboarding_key, {})
+        return {
+            "email": telegram_email,
+            "user": user_profile,
+            "onboarding": onboarding_profile
+        }
+
+    # Create new user profile
+    now = datetime.now().isoformat()
+    user_id = f"telegram_{telegram_id}"
+    user_profile = {
+        "id": user_id,
+        "email": telegram_email,
+        "name": username or f"TelegramUser_{telegram_id}",
+        "created_at": now,
+        "is_active": True
+    }
+    users_data[telegram_email] = user_profile
+    data_manager.save_user_data(users_data)
+
+    # Create onboarding profile with default values
+    onboarding_profile = {
+        "name": username or f"TelegramUser_{telegram_id}",
+        "email": telegram_email,
+        "user_id": user_id,
+        "current_savings": 0,
+        "savings_goal": 100000,
+        "monthly_income": 0,
+        "monthly_expenses": 0,
+        "skills": [],
+        "risk_tolerance": "Maltillinen",
+        "age": None,
+        "profession": None,
+        "work_experience_years": 0,
+        "time_availability_hours": 0,
+        "financial_goals": [],
+        "preferred_income_methods": [],
+        "motivation_level": 7,
+        "onboarding_completed": now,
+        "profile_completeness": 10,
+        "personalization_level": "basic"
+    }
+    onboarding_data[onboarding_key] = onboarding_profile
+    data_manager.save_onboarding_data(onboarding_data)
+
+    # Optionally, initialize cycles and analysis for new user
+    cycles_data = data_manager.get_cycles_data()
+    if onboarding_key not in cycles_data:
+        cycles_data[onboarding_key] = {
+            "data_key": onboarding_key,
+            "user_id": user_id,
+            "user_email": telegram_email,
+            "current_week": 1,
+            "cycle_started": now,
+            "status": "active",
+            "total_target": 0,
+            "cycles": []
+        }
+        data_manager.save_cycles_data(cycles_data)
+    analysis_data = data_manager.get_analysis_data()
+    if "results" not in analysis_data:
+        analysis_data["results"] = {}
+    if onboarding_key not in analysis_data["results"]:
+        analysis_data["results"][onboarding_key] = {
+            "user_id": onboarding_key,
+            "goal_progress": 0.0,
+            "current_week": 1,
+            "weekly_performance": "not_started",
+            "risk_level": "unknown",
+            "ai_recommendations": [],
+            "next_week_adjustments": {},
+            "analysis_timestamp": now,
+            "strategy_updated": False
+        }
+        data_manager.save_analysis_data(analysis_data)
+
+    return {
+        "email": telegram_email,
+        "user": user_profile,
+        "onboarding": onboarding_profile
+    }
+
 def get_telegram_response(text: str, user_id: int, username: str) -> str:
-    """Smart Telegram response handler with commands and AI"""
-    text = text.strip()
-    
-    # Handle Telegram commands
+    # Get or create user profile
+    user_info = get_or_create_telegram_user(user_id, username)
+    telegram_email = user_info["email"]
+    onboarding = user_info["onboarding"]
+    name = onboarding.get("name", username or f"TelegramUser_{user_id}")
+    current_savings = onboarding.get("current_savings", 0)
+    savings_goal = onboarding.get("savings_goal", 100000)
+    progress = (current_savings / savings_goal * 100) if savings_goal > 0 else 0
+
+    # Use RenderUserContextManager for context
+    context_manager = RenderUserContextManager(telegram_email)
+    context = context_manager.get_enhanced_context()
+
     if text.startswith('/start'):
-        return f"""🎯 Tervetuloa Sentinel 100K:ssa, {username}!
-
-Olen älykkä talousvalmentajasi joka auttaa sinua saavuttamaan 100 000€ säästötavoitteen! 💰
-
-🤖 **Mitä osaan:**
-• 💬 Vastaan talousasioihin suomeksi
-• 📊 Analysoin säästötilannettasi  
-• 🎯 Annan henkilökohtaisia neuvoja
-• 📈 Seuraan tavoitteidesi edistymistä
-
-📋 **Hyödylliset komennot:**
-/dashboard - Näe säästötilanteesi
-/goals - Katso tavoitteesi
-/help - Lisää ohjeita
-
-Kysy mitä tahansa tai aloita kertomalla tavoitteistasi! 🚀"""
-
+        return f"""👋 Hei {name}!\n\nTervetuloa Sentinel 100K -talousbottiin. Profiilisi on luotu automaattisesti!\n\nKäytä komentoja kuten /dashboard, /goals, /help tai kysy vapaasti talouskysymyksiä. 🚀"""
     elif text.startswith('/dashboard'):
-        return f"""📊 **Säästödashboard** - {username}
-
-💰 **Nykyiset säästöt:** 27 850€
-🎯 **Tavoite:** 100 000€  
-📈 **Edistyminen:** 27.9%
-💪 **Jäljellä:** 72 150€
-
-📅 **Viikkotilanne:**
-• Viikko 3/7 menossa
-• Viikkotavoite: 450€
-• Kuukausitavoite: 1 800€
-
-🤖 **Sentinel tila:** AKTIIVINEN
-Seuran edistymistäsi ja annan personoituja neuvoja!
-
-Mitä haluaisit tehdä seuraavaksi? 💭"""
-
+        return f"""📊 <b>Säästödashboard</b> - {name}\n\n💰 <b>Nykyiset säästöt:</b> {current_savings:,.0f}€\n🎯 <b>Tavoite:</b> {savings_goal:,.0f}€\n📈 <b>Edistyminen:</b> {progress:.1f}%\n💪 <b>Jäljellä:</b> {savings_goal-current_savings:,.0f}€\n\n📅 <b>Viikkotilanne:</b>\n• Viikko {context['current_week']}/7 menossa\n• Viikkotavoite: {context['target_income_weekly']:,.0f}€\n• Kuukausitavoite: {context['target_income_monthly']:,.0f}€\n\n🤖 <b>Sentinel tila:</b> {context['watchdog_state'].upper()}\nSeuraan edistymistäsi ja annan personoituja neuvoja!"""
     elif text.startswith('/goals'):
-        return f"""🎯 **Tavoitteesi** - {username}
-
-🏆 **Päätavoite:** 100 000€ säästöt
-📅 **Aikataulu:** 7-viikon intensiivikurssi
-🚀 **Strategia:** Progressiivinen säästäminen
-
-📈 **Viikoittaiset tavoitteet:**
-• Viikko 1-2: 300€/vko (Alkeet)
-• Viikko 3-4: 450€/vko (Edistynyt) ⬅️ **TÄSSÄ NYT**
-• Viikko 5-6: 600€/vko (Expertti)
-• Viikko 7: 750€/vko (Mestari)
-
-💡 **Personoidut ehdotukseni:**
-• Freelance projektit (osaaminen: {['Ohjelmointi', 'Suunnittelu'][user_id % 2]})
-• Sivutulot verkossa
-• Säästöjen optimointi
-
-Kerro lisää tilanteestasi niin annan tarkempia neuvoja! 🎯"""
-
+        return f"""🎯 <b>Tavoitteesi</b> - {name}\n\n🏆 <b>Päätavoite:</b> {savings_goal:,.0f}€ säästöt\n📅 <b>Aikataulu:</b> 7-viikon intensiivikurssi\n🚀 <b>Strategia:</b> Progressiivinen säästäminen\n\n📈 <b>Viikoittaiset tavoitteet:</b>\n• Viikko 1-2: 300€/vko (Alkeet)\n• Viikko 3-4: 450€/vko (Edistynyt)\n• Viikko 5-6: 600€/vko (Expertti)\n• Viikko 7: 750€/vko (Mestari)\n\n💡 <b>Personoidut ehdotukseni:</b>\n• Freelance projektit (osaaminen: {', '.join(onboarding.get('skills', ['Ohjelmointi']))})\n• Sivutulot verkossa\n• Säästöjen optimointi\n\nKerro lisää tilanteestasi niin annan tarkempia neuvoja! 🎯"""
     elif text.startswith('/help'):
-        return f"""❓ **Sentinel 100K Ohje**
-
-🤖 **Olen älykkä talousvalmentajasi!**
-
-📋 **Komennot:**
-/start - Aloita alusta
-/dashboard - Säästötilanne
-/goals - Tavoitteesi
-/help - Tämä ohje
-
-💬 **Voit kysyä esim:**
-• "Miten säästän nopeammin?"
-• "Mitä sivutuloja suosittelet?"
-• "Analysoi taloustilannettani"
-• "Anna budjetointivinkkejä"
-
-🎯 **Erikoisosaaminen:**
-• Suomalaiset olosuhteet
-• Personoidut neuvot
-• 7-viikon intensiivikurssi
-• Reaaliaikainen seuranta
-
-Kysy rohkeasti mitä tahansa talousasioista! 💰🚀"""
-
+        return f"""❓ <b>Sentinel 100K Ohje</b>\n\n🤖 Olen älykkä talousvalmentajasi!\n\n<b>Komennot:</b>\n/start - Aloita alusta\n/dashboard - Säästötilanne\n/goals - Tavoitteesi\n/help - Tämä ohje\n\n<b>Voit kysyä esim:</b>\n• \"Miten säästän nopeammin?\"\n• \"Mitä sivutuloja suosittelet?\"\n• \"Analysoi taloustilannettani\"\n• \"Anna budjetointivinkkejä\"\n\n<b>Erikoisosaaminen:</b>\n• Suomalaiset olosuhteet\n• Personoidut neuvot\n• 7-viikon intensiivikurssi\n• Reaaliaikainen seuranta\n\nKysy rohkeasti mitä tahansa talousasioista! 💰🚀"""
     # Handle natural language with AI
     else:
         # Use enhanced AI for more natural responses
         if any(word in text.lower() for word in ['hei', 'moi', 'terve', 'hello']):
-            return f"""👋 Hei {username}!
-
-Kiva nähdä sinua täällä! Olen Sentinel 100K, älykkä talousvalmentajasi. 
-
-🎯 **Tänään voimme:**
-• Analysoida säästötilannettasi
-• Suunnitella tulojen lisäämistä  
-• Optimoida kulujasi
-• Asettaa realistisia tavoitteita
-
-Kerro, mikä talousasia sinua kiinnostaa tällä hetkellä? 💰"""
-
+            return f"""👋 Hei {name}!\n\nKiva nähdä sinua täällä! Olen Sentinel 100K, älykkä talousvalmentajasi.\n\n🎯 <b>Tänään voimme:</b>\n• Analysoida säästötilannettasi\n• Suunnitella tulojen lisäämistä\n• Optimoida kulujasi\n• Asettaa realistisia tavoitteita\n\nKerro, mikä talousasia sinua kiinnostaa tällä hetkellä? 💰"""
         elif any(word in text.lower() for word in ['säästä', 'raha', 'tavoite', 'budjetti']):
-            return f"""💰 **Talousneuvonta aktiivinen!**
-
-Hyvä että kysyt säästämisestä! Tässä henkilökohtaisia vinkkejä:
-
-📊 **Säästöstrategia:**
-• Aseta viikkotavoitteet (aloita 300€/vko)
-• Seuraa kuluja päivittäin  
-• Lisää tuloja sivutöillä
-• Automatisoi säästäminen
-
-💡 **Nopeat toimenpiteet:**
-1. Laske kuukausittaiset kiinteät kulut
-2. Aseta 20% tuloista automaattisäästöön
-3. Etsi yksi uusi tulolähde tällä viikolla
-
-Kerro nykyisestä tilanteestasi niin annan tarkempia neuvoja! 🎯"""
-
+            return f"""💰 <b>Talousneuvonta aktiivinen!</b>\n\nHyvä että kysyt säästämisestä! Tässä henkilökohtaisia vinkkejä:\n\n📊 <b>Säästöstrategia:</b>\n• Aseta viikkotavoitteet (aloita 300€/vko)\n• Seuraa kuluja päivittäin\n• Lisää tuloja sivutöillä\n• Automatisoi säästäminen\n\n💡 <b>Nopeat toimenpiteet:</b>\n1. Laske kuukausittaiset kiinteät kulut\n2. Aseta 20% tuloista automaattisäästöön\n3. Etsi yksi uusi tulolähde tällä viikolla\n\nKerro nykyisestä tilanteestasi niin annan tarkempia neuvoja! 🎯"""
         else:
-            # Generic intelligent response
+            # Generic intelligent response with user context
             chat_message = ChatMessage(message=text)
-            ai_response = complete_ai_chat(chat_message)
-            basic_response = ai_response.get("response", "")
-            
-            return f"""🤖 **Sentinel 100K vastaa:**
-
-{basic_response}
-
-💡 **Vinkki:** Käytä komentoja kuten /dashboard tai /goals saadaksesi tarkempaa tietoa!
-
-Mitä muuta voin auttaa sinua talousasioissa? 💰"""
+            # Use enhanced AI chat endpoint with user context
+            try:
+                ai_response = enhanced_ai_chat_render(chat_message, user_email=telegram_email)
+                if isinstance(ai_response, dict):
+                    basic_response = ai_response.get("response", "")
+                else:
+                    basic_response = str(ai_response)
+            except Exception as e:
+                basic_response = "(AI-vastaus ei saatavilla juuri nyt)"
+            return f"""🤖 <b>Sentinel 100K vastaa:</b>\n\n{basic_response}\n\n💡 <i>Vinkki:</i> Käytä komentoja kuten /dashboard tai /goals saadaksesi tarkempaa tietoa!\n\nMitä muuta voin auttaa sinua talousasioissa? 💰"""
 
 class TelegramUpdate(BaseModel):
     update_id: int
@@ -992,12 +1000,15 @@ async def telegram_webhook(update: TelegramUpdate):
             text = message.get("text", "")
             user_id = message.get("from", {}).get("id")
             username = message.get("from", {}).get("username", "Unknown")
-            
+
             print(f"📱 Telegram message from {username} ({user_id}): {text}")
-            
+
+            # --- USER PROFILE AUTO-REGISTRATION ---
+            get_or_create_telegram_user(user_id, username)
+
             # Smart Telegram response handling
             response_text = get_telegram_response(text, user_id, username)
-            
+
             # Send response back to Telegram
             telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
             if telegram_token:
@@ -1008,7 +1019,7 @@ async def telegram_webhook(update: TelegramUpdate):
                     "text": response_text,
                     "parse_mode": "HTML"
                 }
-                
+
                 response = requests.post(telegram_url, json=payload)
                 if response.status_code == 200:
                     print(f"✅ Telegram response sent successfully")
@@ -1021,7 +1032,7 @@ async def telegram_webhook(update: TelegramUpdate):
                 return {"status": "warning", "message": "Bot token not configured"}
         
         return {"status": "success", "message": "Update processed"}
-        
+
     except Exception as e:
         print(f"❌ Telegram webhook error: {str(e)}")
         return {"status": "error", "message": str(e)}
@@ -1049,6 +1060,514 @@ def telegram_test():
         "render_production": True,
         "message": "Telegram integration is ready for production!"
     }
+
+@app.get("/api/v1/notifications/status")
+def notification_status():
+    """Check notification system status"""
+    users = notification_manager.get_all_telegram_users()
+    return {
+        "status": "active",
+        "telegram_users_count": len(users),
+        "notification_schedule": {
+            "daily_reminders": "09:00",
+            "weekly_summaries": "Sunday 20:00",
+            "watchdog_checks": "Every 6 hours",
+            "milestone_checks": "18:00"
+        },
+        "manual_endpoints": [
+            "POST /api/v1/notifications/send-daily",
+            "POST /api/v1/notifications/send-weekly", 
+            "POST /api/v1/notifications/check-watchdog",
+            "POST /api/v1/notifications/check-milestones"
+        ],
+        "telegram_token_configured": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
+        "version": "100.1.0"
+    }
+
+# --- TELEGRAM NOTIFICATION SYSTEM ---
+class TelegramNotificationManager:
+    """Proactive notification system for Telegram users"""
+    
+    def __init__(self):
+        self.telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
+        self.base_url = f"https://api.telegram.org/bot{self.telegram_token}"
+        
+    def send_telegram_message(self, chat_id: int, message: str) -> bool:
+        """Send message to Telegram user"""
+        if not self.telegram_token:
+            print("⚠️ TELEGRAM_BOT_TOKEN not found")
+            return False
+            
+        try:
+            payload = {
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": "HTML"
+            }
+            response = requests.post(f"{self.base_url}/sendMessage", json=payload)
+            return response.status_code == 200
+        except Exception as e:
+            print(f"❌ Failed to send Telegram message: {e}")
+            return False
+    
+    def get_all_telegram_users(self) -> List[Dict[str, Any]]:
+        """Get all registered Telegram users"""
+        users_data = data_manager.get_user_data()
+        telegram_users = []
+        
+        for email, user_data in users_data.items():
+            if email.startswith("telegram_"):
+                telegram_id = email.split("_")[1].split("@")[0]
+                telegram_users.append({
+                    "telegram_id": int(telegram_id),
+                    "email": email,
+                    "user_data": user_data
+                })
+        
+        return telegram_users
+    
+    def send_daily_reminder(self, user_info: dict) -> bool:
+        """Send daily savings reminder"""
+        telegram_id = user_info["telegram_id"]
+        email = user_info["email"]
+        
+        # Get user context
+        context_manager = RenderUserContextManager(email)
+        context = context_manager.get_enhanced_context()
+        
+        current_savings = context.get("current_savings", 0)
+        savings_goal = context.get("savings_goal", 100000)
+        progress = context.get("progress_summary", {}).get("goal_progress_percentage", 0)
+        current_week = context.get("current_week", 1)
+        weekly_target = context.get("target_income_weekly", 300)
+        
+        message = f"""🌅 <b>Hyvää aamua!</b> 
+
+💰 <b>Päivän säästömuistutus:</b>
+• Nykyiset säästöt: {current_savings:,.0f}€
+• Tavoite: {savings_goal:,.0f}€
+• Edistyminen: {progress:.1f}%
+
+📅 <b>Viikko {current_week}/7:</b>
+• Viikkotavoite: {weekly_target:,.0f}€
+• Tänään suosittelen säästämään: {weekly_target/7:.0f}€
+
+💡 <b>Päivän vinkki:</b>
+{self._get_daily_tip(context)}
+
+Muista: Jokainen euro lähempänä tavoitetta! 💪"""
+        
+        return self.send_telegram_message(telegram_id, message)
+    
+    def send_watchdog_alert(self, user_info: dict, alert_type: str = "general") -> bool:
+        """Send watchdog alert based on user progress"""
+        telegram_id = user_info["telegram_id"]
+        email = user_info["email"]
+        
+        context_manager = RenderUserContextManager(email)
+        context = context_manager.get_enhanced_context()
+        
+        current_savings = context.get("current_savings", 0)
+        savings_goal = context.get("savings_goal", 100000)
+        progress = context.get("progress_summary", {}).get("goal_progress_percentage", 0)
+        current_week = context.get("current_week", 1)
+        
+        if alert_type == "low_progress":
+            message = f"""🚨 <b>Watchdog Alert - Hidastunut edistyminen</b>
+
+⚠️ Säästämisesi on hidastunut viime aikoina!
+
+📊 <b>Tilanne:</b>
+• Edistyminen: {progress:.1f}%
+• Viikko: {current_week}/7
+• Jäljellä: {savings_goal - current_savings:,.0f}€
+
+💡 <b>Kriittiset toimenpiteet:</b>
+1. Analysoi kulut tarkasti
+2. Etsi lisätulolähteitä
+3. Optimoi säästöstrategiaa
+
+Haluatko apua talousanalyysissä? 💰"""
+        
+        elif alert_type == "behind_schedule":
+            message = f"""⚠️ <b>Watchdog Alert - Aikataulusta jäljessä</b>
+
+📅 Olet aikataulusta jäljessä tavoitteesi saavuttamisessa.
+
+📊 <b>Analyysi:</b>
+• Edistyminen: {progress:.1f}%
+• Viikko: {current_week}/7
+• Tarvittava korotus: {self._calculate_catchup_amount(context):.0f}€/viikko
+
+🎯 <b>Suositukset:</b>
+• Lisää säästösummaa {self._calculate_catchup_amount(context):.0f}€/viikko
+• Etsi lisätulolähteitä
+• Optimoi kuluja
+
+Haluatko henkilökohtaisen suunnitelman? 🚀"""
+        
+        else:
+            message = f"""🤖 <b>Watchdog Tila - {context.get('watchdog_state', 'Active')}</b>
+
+📊 <b>Nykyinen tilanne:</b>
+• Säästöt: {current_savings:,.0f}€
+• Edistyminen: {progress:.1f}%
+• Viikko: {current_week}/7
+
+💡 <b>AI-suositukset:</b>
+{self._get_ai_recommendations(context)}
+
+Jatka hyvää työtä! 💪"""
+        
+        return self.send_telegram_message(telegram_id, message)
+    
+    def send_milestone_celebration(self, user_info: dict, milestone_type: str) -> bool:
+        """Send milestone celebration message"""
+        telegram_id = user_info["telegram_id"]
+        email = user_info["email"]
+        
+        context_manager = RenderUserContextManager(email)
+        context = context_manager.get_enhanced_context()
+        
+        current_savings = context.get("current_savings", 0)
+        progress = context.get("progress_summary", {}).get("goal_progress_percentage", 0)
+        
+        if milestone_type == "first_1000":
+            message = f"""🎉 <b>ONNITELUT! Ensimmäinen 1000€ saavutettu!</b>
+
+💰 Olet saavuttanut ensimmäisen 1000€ säästösi!
+
+📈 <b>Edistyminen:</b>
+• Säästöt: {current_savings:,.0f}€
+• Edistyminen: {progress:.1f}%
+
+🏆 <b>Seuraava tavoite:</b> 5000€
+
+Jatka samalla tahdilla! Olet menossa oikeaan suuntaan! 🚀"""
+        
+        elif milestone_type == "quarter_goal":
+            message = f"""🎊 <b>UPEAA! 25% tavoitteesta saavutettu!</b>
+
+🎯 Olet saavuttanut neljänneksen 100 000€ tavoitteestasi!
+
+📊 <b>Tilanne:</b>
+• Säästöt: {current_savings:,.0f}€
+• Edistyminen: {progress:.1f}%
+
+💪 <b>Seuraava tavoite:</b> 50% (50 000€)
+
+Olet todellinen säästäjä! Jatka samalla energialla! 💰"""
+        
+        elif milestone_type == "half_goal":
+            message = f"""🏆 <b>FANTASTISTA! Puolet tavoitteesta saavutettu!</b>
+
+🎯 Olet saavuttanut 50 000€ - puolet tavoitteestasi!
+
+📈 <b>Suoritus:</b>
+• Säästöt: {current_savings:,.0f}€
+• Edistyminen: {progress:.1f}%
+
+🚀 <b>Seuraava tavoite:</b> 75% (75 000€)
+
+Olet todellinen talousmestari! Jatka samalla tahdilla! 💪"""
+        
+        elif milestone_type == "week_completed":
+            message = f"""✅ <b>Viikko suoritettu!</b>
+
+📅 Olet suorittanut viikon {context.get('current_week', 1)}/7!
+
+📊 <b>Viikon yhteenveto:</b>
+• Viikkotavoite: {context.get('target_income_weekly', 0):,.0f}€
+• Edistyminen: {progress:.1f}%
+
+🎯 <b>Seuraava viikko:</b> {context.get('current_week', 1) + 1}/7
+
+Hyvää työtä! Jatka samalla energialla! 💰"""
+        
+        else:
+            message = f"""🎉 <b>Onnittelut edistymisestäsi!</b>
+
+💰 <b>Nykyinen tilanne:</b>
+• Säästöt: {current_savings:,.0f}€
+• Edistyminen: {progress:.1f}%
+
+Jatka hyvää työtä! Olet menossa oikeaan suuntaan! 🚀"""
+        
+        return self.send_telegram_message(telegram_id, message)
+    
+    def send_weekly_summary(self, user_info: dict) -> bool:
+        """Send weekly summary and next week preview"""
+        telegram_id = user_info["telegram_id"]
+        email = user_info["email"]
+        
+        context_manager = RenderUserContextManager(email)
+        context = context_manager.get_enhanced_context()
+        
+        current_savings = context.get("current_savings", 0)
+        progress = context.get("progress_summary", {}).get("goal_progress_percentage", 0)
+        current_week = context.get("current_week", 1)
+        weekly_target = context.get("target_income_weekly", 300)
+        
+        message = f"""📊 <b>Viikon yhteenveto</b>
+
+📅 <b>Viikko {current_week}/7 suoritettu!</b>
+
+💰 <b>Tilanne:</b>
+• Säästöt: {current_savings:,.0f}€
+• Edistyminen: {progress:.1f}%
+• Viikkotavoite: {weekly_target:,.0f}€
+
+🎯 <b>Seuraava viikko ({current_week + 1}/7):</b>
+• Uusi viikkotavoite: {self._get_next_week_target(context):.0f}€
+• Haasteet: {', '.join(self._get_next_week_challenges(context))}
+
+💡 <b>Suositukset seuraavalle viikolle:</b>
+{self._get_weekly_recommendations(context)}
+
+Hyvää työtä! Jatka samalla energialla! 💪"""
+        
+        return self.send_telegram_message(telegram_id, message)
+    
+    def _get_daily_tip(self, context: dict) -> str:
+        """Get personalized daily tip"""
+        tips = [
+            "Tallenna kaikki kulut tänään - tiedät missä raha menee!",
+            "Etsi yksi tarpeeton kuluerä ja leikkaa se pois.",
+            "Suunnittele viikon ruokaostokset etukäteen.",
+            "Vertaa hintoja ennen ostoa - säästät helposti 10-20%.",
+            "Aseta automaattinen säästösiirto palkkapäivänä.",
+            "Etsi yksi uusi tulolähde tällä viikolla.",
+            "Optimoi sähkö- ja puhelinlaskut.",
+            "Myy yksi tarpeeton esine verkossa."
+        ]
+        return tips[context.get("current_week", 1) % len(tips)]
+    
+    def _get_ai_recommendations(self, context: dict) -> str:
+        """Get AI recommendations based on context"""
+        progress = context.get("progress_summary", {}).get("goal_progress_percentage", 0)
+        
+        if progress < 25:
+            return "• Tehosta säästämistä välittömästi\n• Analysoi kaikki kulut\n• Etsi lisätulolähteitä"
+        elif progress < 50:
+            return "• Optimoi säästöstrategiaa\n• Lisää tulolähteitä\n• Automatisoi säästäminen"
+        else:
+            return "• Skaalaa menestyksekkäitä strategioita\n• Harkitse sijoittamista\n• Suunnittele pitkän aikavälin tavoitteet"
+    
+    def _calculate_catchup_amount(self, context: dict) -> float:
+        """Calculate how much more user needs to save to catch up"""
+        progress = context.get("progress_summary", {}).get("goal_progress_percentage", 0)
+        current_week = context.get("current_week", 1)
+        expected_progress = (current_week / 7) * 100
+        deficit = expected_progress - progress
+        
+        if deficit > 0:
+            savings_goal = context.get("savings_goal", 100000)
+            return (deficit / 100) * savings_goal / (7 - current_week)
+        return 0
+    
+    def _get_next_week_target(self, context: dict) -> float:
+        """Get next week's target"""
+        current_week = context.get("current_week", 1)
+        base_target = 300
+        if current_week < 7:
+            return base_target * (1 + (current_week * 0.1))
+        return base_target * 1.5
+    
+    def _get_next_week_challenges(self, context: dict) -> List[str]:
+        """Get next week's challenges"""
+        current_week = context.get("current_week", 1)
+        challenges = [
+            ["Tallenna kaikki kulut", "Löydä 3 säästökohdetta", "Tee budjetti viikolle"],
+            ["Neuvottele yksi lasku alemmas", "Myy 1 tarpeeton esine", "Tee freelance-haku"],
+            ["Aloita sivutyö", "Optimoi suurin kuluerä", "Luo passiivinen tulolähde"],
+            ["Kasvata sivutyötuloja", "Automatisoi säästäminen", "Verkostoidu ammattialalla"],
+            ["Lanseeraa oma palvelu", "Nosta tuntihintoja", "Solmi pitkäaikainen sopimus"],
+            ["Skaalaa liiketoimintaa", "Tee strateginen sijoitus", "Luo toinen tulolähde"],
+            ["Maksimoi kaikki tulot", "Varmista jatkuvuus", "Suunnittele seuraava sykli"]
+        ]
+        if current_week <= len(challenges):
+            return challenges[current_week - 1]
+        return ["Jatka hyvää työtä", "Optimoi strategioita", "Skaalaa menestystä"]
+    
+    def _get_weekly_recommendations(self, context: dict) -> str:
+        """Get weekly recommendations"""
+        current_week = context.get("current_week", 1)
+        recommendations = [
+            "Keskity perusteiden oppimiseen ja säästöjen aloittamiseen.",
+            "Aloita tulojen lisääminen ja kulujen optimointi.",
+            "Skaalaa menestyksekkäitä strategioita ja automatisoi.",
+            "Harkitse sijoittamista ja pitkän aikavälin suunnittelua.",
+            "Maksimoi kaikki tulolähteet ja optimoi verotusta.",
+            "Suunnittele seuraavaa vaihetta ja skaalaa liiketoimintaa.",
+            "Varmista jatkuvuus ja suunnittele uusia tavoitteita."
+        ]
+        if current_week <= len(recommendations):
+            return recommendations[current_week - 1]
+        return "Jatka hyvää työtä ja optimoi strategioita!"
+
+# Initialize notification manager
+notification_manager = TelegramNotificationManager()
+
+# --- SCHEDULED NOTIFICATION FUNCTIONS ---
+def send_daily_reminders():
+    """Send daily reminders to all Telegram users"""
+    print("📅 Sending daily reminders...")
+    users = notification_manager.get_all_telegram_users()
+    
+    for user in users:
+        try:
+            success = notification_manager.send_daily_reminder(user)
+            if success:
+                print(f"✅ Daily reminder sent to {user['email']}")
+            else:
+                print(f"❌ Failed to send daily reminder to {user['email']}")
+        except Exception as e:
+            print(f"❌ Error sending daily reminder to {user['email']}: {e}")
+        
+        # Small delay to avoid rate limiting
+        time.sleep(1)
+
+def send_weekly_summaries():
+    """Send weekly summaries to all Telegram users"""
+    print("📊 Sending weekly summaries...")
+    users = notification_manager.get_all_telegram_users()
+    
+    for user in users:
+        try:
+            success = notification_manager.send_weekly_summary(user)
+            if success:
+                print(f"✅ Weekly summary sent to {user['email']}")
+            else:
+                print(f"❌ Failed to send weekly summary to {user['email']}")
+        except Exception as e:
+            print(f"❌ Error sending weekly summary to {user['email']}: {e}")
+        
+        time.sleep(1)
+
+def check_watchdog_alerts():
+    """Check and send watchdog alerts"""
+    print("🤖 Checking watchdog alerts...")
+    users = notification_manager.get_all_telegram_users()
+    
+    for user in users:
+        try:
+            context_manager = RenderUserContextManager(user['email'])
+            context = context_manager.get_enhanced_context()
+            
+            progress = context.get("progress_summary", {}).get("goal_progress_percentage", 0)
+            current_week = context.get("current_week", 1)
+            expected_progress = (current_week / 7) * 100
+            
+            # Send alert if significantly behind schedule
+            if progress < expected_progress - 10:
+                success = notification_manager.send_watchdog_alert(user, "behind_schedule")
+                if success:
+                    print(f"⚠️ Watchdog alert sent to {user['email']}")
+            
+            # Send alert if very low progress
+            elif progress < 15:
+                success = notification_manager.send_watchdog_alert(user, "low_progress")
+                if success:
+                    print(f"🚨 Low progress alert sent to {user['email']}")
+                    
+        except Exception as e:
+            print(f"❌ Error checking watchdog for {user['email']}: {e}")
+        
+        time.sleep(1)
+
+def check_milestones():
+    """Check and celebrate milestones"""
+    print("🎉 Checking milestones...")
+    users = notification_manager.get_all_telegram_users()
+    
+    for user in users:
+        try:
+            context_manager = RenderUserContextManager(user['email'])
+            context = context_manager.get_enhanced_context()
+            
+            current_savings = context.get("current_savings", 0)
+            progress = context.get("progress_summary", {}).get("goal_progress_percentage", 0)
+            
+            # Check for milestones (you might want to store these in user data to avoid duplicates)
+            if current_savings >= 1000 and current_savings < 1100:
+                success = notification_manager.send_milestone_celebration(user, "first_1000")
+                if success:
+                    print(f"🎉 First 1000€ milestone celebrated for {user['email']}")
+            
+            elif progress >= 25 and progress < 26:
+                success = notification_manager.send_milestone_celebration(user, "quarter_goal")
+                if success:
+                    print(f"🎊 25% goal milestone celebrated for {user['email']}")
+            
+            elif progress >= 50 and progress < 51:
+                success = notification_manager.send_milestone_celebration(user, "half_goal")
+                if success:
+                    print(f"🏆 50% goal milestone celebrated for {user['email']}")
+                    
+        except Exception as e:
+            print(f"❌ Error checking milestones for {user['email']}: {e}")
+        
+        time.sleep(1)
+
+# --- SCHEDULER SETUP ---
+def setup_notification_scheduler():
+    """Setup scheduled notifications"""
+    # Daily reminders at 9:00 AM
+    schedule.every().day.at("09:00").do(send_daily_reminders)
+    
+    # Weekly summaries on Sundays at 8:00 PM
+    schedule.every().sunday.at("20:00").do(send_weekly_summaries)
+    
+    # Watchdog checks every 6 hours
+    schedule.every(6).hours.do(check_watchdog_alerts)
+    
+    # Milestone checks daily at 6:00 PM
+    schedule.every().day.at("18:00").do(check_milestones)
+    
+    print("✅ Notification scheduler setup complete")
+
+def run_scheduler():
+    """Run the notification scheduler"""
+    while True:
+        schedule.run_pending()
+        time.sleep(60)  # Check every minute
+
+# --- MANUAL NOTIFICATION ENDPOINTS ---
+@app.post("/api/v1/notifications/send-daily")
+def trigger_daily_reminders():
+    """Manually trigger daily reminders"""
+    try:
+        send_daily_reminders()
+        return {"status": "success", "message": "Daily reminders sent"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/v1/notifications/send-weekly")
+def trigger_weekly_summaries():
+    """Manually trigger weekly summaries"""
+    try:
+        send_weekly_summaries()
+        return {"status": "success", "message": "Weekly summaries sent"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/v1/notifications/check-watchdog")
+def trigger_watchdog_check():
+    """Manually trigger watchdog check"""
+    try:
+        check_watchdog_alerts()
+        return {"status": "success", "message": "Watchdog check completed"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/v1/notifications/check-milestones")
+def trigger_milestone_check():
+    """Manually trigger milestone check"""
+    try:
+        check_milestones()
+        return {"status": "success", "message": "Milestone check completed"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 # 🏁 Main entry point
 if __name__ == "__main__":
