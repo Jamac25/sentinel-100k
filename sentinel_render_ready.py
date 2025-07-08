@@ -727,19 +727,12 @@ def get_user_enhanced_context_render(user_email: str):
 @app.post("/api/v1/chat/enhanced")
 def enhanced_ai_chat_render(message: ChatMessage, user_email: str):
     """
-    Enhanced AI chat for Render with full user context and REAL AI
+    Enhanced AI chat for Render with full user context and REAL OpenAI AI
     """
     try:
-        # Build enhanced prompt with user context
-        enhanced_prompt = build_render_enhanced_ai_prompt(user_email, message.message)
-        
         # Get user context for response personalization
         context_manager = RenderUserContextManager(user_email)
         context = context_manager.get_enhanced_context()
-        
-        # Use REAL AI instead of mock responses
-        # This is a simplified AI response that actually processes the user's message
-        user_message = message.message.lower()
         
         # Build comprehensive AI prompt
         ai_prompt = f"""
@@ -752,16 +745,70 @@ KÄYTTÄJÄN TIEDOT:
 - Edistyminen: {context.get('progress_summary', {}).get('goal_progress_percentage', 0):.1f}%
 - Viikko: {context.get('current_week', 1)}/7
 - Watchdog-tila: {context.get('watchdog_state', 'Active')}
+- Kuukausitulot: {context.get('monthly_income', 0):,.0f}€
+- Kuukausimenot: {context.get('monthly_expenses', 0):,.0f}€
+- Viikkotavoite: {context.get('target_income_weekly', 300):,.0f}€
 
 KÄYTTÄJÄN KYSYMYS: {message.message}
 
 OHJEISTUS:
-Vastaa henkilökohtaisesti, käytännöllisesti ja suomeksi. Käytä käyttäjän oikeita tietoja ja anna konkreettisia neuvoja. Ole motivoiva ja auta käyttäjää saavuttamaan 100 000€ säästötavoitteen. Käytä emojiita ja tee vastauksesta selkeä.
+Vastaa henkilökohtaisesti, käytännöllisesti ja suomeksi. Käytä käyttäjän oikeita tietoja ja anna konkreettisia neuvoja. Ole motivoiva ja auta käyttäjää saavuttamaan 100 000€ säästötavoitteen. Käytä emojiita ja tee vastauksesta selkeä. Vastaa suoraan kysymykseen ja anna käytännöllisiä neuvoja.
 """
+
+        # Use OpenAI API for real AI responses
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if openai_api_key:
+            try:
+                import openai
+                openai.api_key = openai_api_key
+                
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "Olet Sentinel 100K - henkilökohtainen talousneuvoja. Vastaa aina suomeksi ja käytä emojiita."},
+                        {"role": "user", "content": ai_prompt}
+                    ],
+                    max_tokens=500,
+                    temperature=0.7
+                )
+                
+                ai_response = response.choices[0].message.content
+                
+                return {
+                    "response": ai_response,
+                    "enhanced_prompt_used": True,
+                    "user_email": user_email,
+                    "personalization_level": "Maximum",
+                    "context_sources": ["goal_tracking", "watchdog", "cycles", "analysis"],
+                    "watchdog_state": context.get("watchdog_state", "Active"),
+                    "goal_progress": context.get("progress_summary", {}).get("goal_progress_percentage", 0),
+                    "timestamp": datetime.now().isoformat(),
+                    "model": "gpt-3.5-turbo",
+                    "environment": "render_production",
+                    "ai_used": True,
+                    "openai_used": True
+                }
+                
+            except Exception as e:
+                print(f"❌ OpenAI API error: {e}")
+                # Fallback to intelligent response generation
+                return generate_intelligent_response(message.message, context)
+        else:
+            print("⚠️ OPENAI_API_KEY not found, using intelligent fallback")
+            return generate_intelligent_response(message.message, context)
         
-        # Simple AI response generation (in production, this would use OpenAI API)
-        if "säästä" in user_message or "savings" in user_message or "goal" in user_message:
-            response = f"""🎯 <b>Henkilökohtainen säästöanalyysi {context.get('name', 'Käyttäjä')}:</b>
+    except Exception as e:
+        print(f"❌ Enhanced AI chat error: {e}")
+        # Fallback to basic chat
+        return complete_ai_chat(message)
+
+def generate_intelligent_response(user_message: str, context: dict) -> dict:
+    """Generate intelligent response without OpenAI API"""
+    user_message_lower = user_message.lower()
+    
+    # Intelligent response based on message content and user context
+    if "säästä" in user_message_lower or "savings" in user_message_lower or "goal" in user_message_lower:
+        response = f"""🎯 <b>Henkilökohtainen säästöanalyysi {context.get('name', 'Käyttäjä')}:</b>
 
 💰 <b>Nykyinen tilanne:</b>
 • Säästöt: {context.get('current_savings', 0):,.0f}€
@@ -776,9 +823,9 @@ Vastaa henkilökohtaisesti, käytännöllisesti ja suomeksi. Käytä käyttäjä
 💪 <b>Motivaatio:</b>
 Jäljellä tavoitteeseen: {context.get('savings_goal', 100000) - context.get('current_savings', 0):,.0f}€
 Olet {context.get('progress_summary', {}).get('goal_progress_percentage', 0):.1f}% matkalla! Jatka hyvää työtä! 🚀"""
-        
-        elif "tilanne" in user_message or "progress" in user_message or "dashboard" in user_message:
-            response = f"""📊 <b>Tilannekatsaus {context.get('name', 'Käyttäjä')}:</b>
+    
+    elif "tilanne" in user_message_lower or "progress" in user_message_lower or "dashboard" in user_message_lower:
+        response = f"""📊 <b>Tilannekatsaus {context.get('name', 'Käyttäjä')}:</b>
 
 ✅ <b>Profiilitäydellisyys:</b> {context.get('data_completeness', 0)}%
 🔄 <b>Viikkosykli:</b> {context.get('current_week', 1)}/7 ({context.get('cycle_progress', 0):.1f}% valmis)
@@ -789,9 +836,9 @@ Olet {context.get('progress_summary', {}).get('goal_progress_percentage', 0):.1f
 {context.get('ai_context', {}).get('ai_recommendations', ['Jatka hyvää työtä!'])[0] if context.get('ai_context', {}).get('ai_recommendations') else 'Jatka säästämistä ja optimoi kulujasi!'}
 
 Personoitu vastaus perustuu täydelliseen käyttäjäprofiiliisi! 🚀"""
-        
-        elif "neuvo" in user_message or "advice" in user_message or "help" in user_message:
-            response = f"""💡 <b>Henkilökohtaiset neuvoni {context.get('name', 'Käyttäjä')}:</b>
+    
+    elif "neuvo" in user_message_lower or "advice" in user_message_lower or "help" in user_message_lower:
+        response = f"""💡 <b>Henkilökohtaiset neuvoni {context.get('name', 'Käyttäjä')}:</b>
 
 🎯 <b>Perustuu tilanteeseesi:</b>
 • Säästöt: {context.get('current_savings', 0):,.0f}€
@@ -808,14 +855,33 @@ Personoitu vastaus perustuu täydelliseen käyttäjäprofiiliisi! 🚀"""
 {context.get('ai_context', {}).get('ai_recommendations', ['Jatka hyvää työtä!'])[0] if context.get('ai_context', {}).get('ai_recommendations') else 'Keskity viikkotavoitteeseesi ja optimoi kulujasi!'}
 
 Olen täällä auttamassa saavuttamaan 100 000€ tavoitteesi! 💪"""
+    
+    elif "budjetti" in user_message_lower or "budget" in user_message_lower:
+        monthly_income = context.get('monthly_income', 0)
+        monthly_expenses = context.get('monthly_expenses', 0)
+        savings_potential = monthly_income - monthly_expenses
         
-        else:
-            # Generic AI response for any other message
-            response = f"""🤖 <b>Sentinel 100K vastaa:</b>
+        response = f"""💰 <b>Budjettianalyysi {context.get('name', 'Käyttäjä')}:</b>
+
+📊 <b>Kuukausibudjetti:</b>
+• Tulot: {monthly_income:,.0f}€
+• Menot: {monthly_expenses:,.0f}€
+• Säästöpotentiaali: {savings_potential:,.0f}€
+
+💡 <b>Suositukseni:</b>
+• Optimoi menojasi {monthly_expenses * 0.1:,.0f}€/kk
+• Lisää säästöjä {savings_potential * 0.8:,.0f}€/kk
+• Seuraa kulujasi tarkasti
+
+🎯 <b>Tavoite:</b> {context.get('target_income_weekly', 300):,.0f}€/viikko säästöjä! 🚀"""
+    
+    else:
+        # Generic intelligent response
+        response = f"""🤖 <b>Sentinel 100K vastaa:</b>
 
 Hei {context.get('name', 'Käyttäjä')}! Olen analysoinut henkilökohtaisen profiilisi ja tässä vastaukseni:
 
-💬 <b>Kysymyksesi:</b> {message.message}
+💬 <b>Kysymyksesi:</b> {user_message}
 
 💰 <b>Henkilökohtainen konteksti:</b>
 • Säästöt: {context.get('current_savings', 0):,.0f}€
@@ -827,25 +893,21 @@ Hei {context.get('name', 'Käyttäjä')}! Olen analysoinut henkilökohtaisen pro
 Keskity viikkotavoitteeseesi ({context.get('target_income_weekly', 300):,.0f}€) ja optimoi kulujasi. Jatka hyvää työtä saavuttaaksesi 100 000€ tavoitteesi!
 
 Kysy mitä tahansa talousasioista - olen täällä auttamassa! 🚀"""
-        
-        return {
-            "response": response,
-            "enhanced_prompt_used": True,
-            "user_email": user_email,
-            "personalization_level": "Maximum",
-            "context_sources": ["goal_tracking", "watchdog", "cycles", "analysis"],
-            "watchdog_state": context.get("watchdog_state", "Active"),
-            "goal_progress": context.get("progress_summary", {}).get("goal_progress_percentage", 0),
-            "timestamp": datetime.now().isoformat(),
-            "model": "sentinel-enhanced-render",
-            "environment": "render_production",
-            "ai_used": True
-        }
-        
-    except Exception as e:
-        print(f"❌ Enhanced AI chat error: {e}")
-        # Fallback to basic chat
-        return complete_ai_chat(message)
+    
+    return {
+        "response": response,
+        "enhanced_prompt_used": True,
+        "user_email": context.get('email', 'unknown'),
+        "personalization_level": "Maximum",
+        "context_sources": ["goal_tracking", "watchdog", "cycles", "analysis"],
+        "watchdog_state": context.get("watchdog_state", "Active"),
+        "goal_progress": context.get("progress_summary", {}).get("goal_progress_percentage", 0),
+        "timestamp": datetime.now().isoformat(),
+        "model": "sentinel-intelligent-fallback",
+        "environment": "render_production",
+        "ai_used": True,
+        "openai_used": False
+    }
 
 @app.post("/api/v1/chat/complete")
 def complete_ai_chat(message: ChatMessage):
