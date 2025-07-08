@@ -17,6 +17,8 @@ services:
         value: production
       - key: DEBUG
         value: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
     autoDeploy: true
 
   # 🗄️ PostgreSQL Database
