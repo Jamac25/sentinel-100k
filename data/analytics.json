@@ -1,0 +1,20 @@
+{
+  "users": {},
+  "messages": [],
+  "performance": {
+    "response_times": [],
+    "error_rates": [],
+    "ai_usage": []
+  },
+  "features": {
+    "dashboard_usage": 0,
+    "notifications_sent": 0,
+    "milestones_celebrated": 0,
+    "watchdog_alerts": 0
+  },
+  "system_health": {
+    "uptime": 0,
+    "last_restart": "2025-07-09T16:39:22.123445",
+    "total_requests": 0
+  }
+}

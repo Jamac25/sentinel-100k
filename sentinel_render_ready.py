@@ -2509,6 +2509,24 @@ def get_detailed_system_health():
         analytics.track_error("system_health", str(e))
         return {"status": "error", "message": str(e)}
 
+@app.get("/debug/openai")
+def debug_openai():
+    """Debug OpenAI API key status"""
+    return {
+        "openai_key_available": bool(OPENAI_API_KEY),
+        "openai_key_length": len(OPENAI_API_KEY) if OPENAI_API_KEY else 0,
+        "openai_key_starts_with": OPENAI_API_KEY[:10] if OPENAI_API_KEY else "None",
+        "openai_key_is_test": OPENAI_API_KEY == "sk-test-key-for-development" if OPENAI_API_KEY else True,
+        "environment_vars": {
+            "OPENAI_API_KEY": "✅ Set" if os.getenv("OPENAI_API_KEY") else "❌ Not set",
+            "openAI": "✅ Set" if os.getenv("openAI") else "❌ Not set",
+            "OPENAI_KEY": "✅ Set" if os.getenv("OPENAI_KEY") else "❌ Not set"
+        },
+        "final_key": "✅ Valid" if OPENAI_API_KEY and OPENAI_API_KEY != "sk-test-key-for-development" else "❌ Invalid",
+        "timestamp": datetime.now().isoformat(),
+        "environment": ENVIRONMENT
+    }
+
 # 🏁 Main entry point
 if __name__ == "__main__":
     uvicorn.run(
