@@ -40,6 +40,16 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 PORT = int(os.getenv("PORT", 8000))
 
+# OpenAI Configuration
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("openAI") or os.getenv("OPENAI_KEY")
+
+# Debug OpenAI API key
+print(f"🔍 OpenAI API Key Debug:")
+print(f"   - OPENAI_API_KEY: {'✅ Set' if os.getenv('OPENAI_API_KEY') else '❌ Not set'}")
+print(f"   - openAI: {'✅ Set' if os.getenv('openAI') else '❌ Not set'}")
+print(f"   - OPENAI_KEY: {'✅ Set' if os.getenv('OPENAI_KEY') else '❌ Not set'}")
+print(f"   - Final key: {'✅ Valid' if OPENAI_API_KEY and OPENAI_API_KEY != 'sk-test-key-for-development' else '❌ Invalid'}")
+
 # 🗄️ Database Configuration
 def get_database_engine():
     """Create database engine with proper settings"""
@@ -727,12 +737,35 @@ def get_user_enhanced_context_render(user_email: str):
 @app.post("/api/v1/chat/enhanced")
 def enhanced_ai_chat_render(message: ChatMessage, user_email: str):
     """
-    Enhanced AI chat for Render with full user context and REAL OpenAI AI
+    Enhanced AI chat for Render with full user context and REAL OpenAI AI - NO FALLBACK
     """
     try:
         # Get user context for response personalization
         context_manager = RenderUserContextManager(user_email)
         context = context_manager.get_enhanced_context()
+        
+        # Check OpenAI API key first
+        if not OPENAI_API_KEY or OPENAI_API_KEY == "sk-test-key-for-development":
+            return {
+                "response": "❌ OpenAI API avain puuttuu tai on virheellinen. Ota yhteyttä ylläpitoon.",
+                "error": "OPENAI_API_KEY_MISSING",
+                "enhanced_prompt_used": False,
+                "user_email": user_email,
+                "personalization_level": "None",
+                "context_sources": [],
+                "watchdog_state": context.get("watchdog_state", "Error"),
+                "goal_progress": context.get("progress_summary", {}).get("goal_progress_percentage", 0),
+                "timestamp": datetime.now().isoformat(),
+                "model": "error",
+                "environment": "render_production",
+                "ai_used": False,
+                "openai_used": False,
+                "debug": {
+                    "openai_key_available": bool(OPENAI_API_KEY),
+                    "openai_key_length": len(OPENAI_API_KEY) if OPENAI_API_KEY else 0,
+                    "openai_key_starts_with": OPENAI_API_KEY[:10] if OPENAI_API_KEY else "None"
+                }
+            }
         
         # Build comprehensive AI prompt
         ai_prompt = f"""
@@ -756,184 +789,82 @@ Vastaa henkilökohtaisesti, käytännöllisesti ja suomeksi. Käytä käyttäjä
 """
 
         # Use OpenAI API for real AI responses
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if openai_api_key:
-            try:
-                import openai
-                openai.api_key = openai_api_key
-                
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "Olet Sentinel 100K - henkilökohtainen talousneuvoja. Vastaa aina suomeksi ja käytä emojiita."},
-                        {"role": "user", "content": ai_prompt}
-                    ],
-                    max_tokens=500,
-                    temperature=0.7
-                )
-                
-                ai_response = response.choices[0].message.content
-                
-                return {
-                    "response": ai_response,
-                    "enhanced_prompt_used": True,
-                    "user_email": user_email,
-                    "personalization_level": "Maximum",
-                    "context_sources": ["goal_tracking", "watchdog", "cycles", "analysis"],
-                    "watchdog_state": context.get("watchdog_state", "Active"),
-                    "goal_progress": context.get("progress_summary", {}).get("goal_progress_percentage", 0),
-                    "timestamp": datetime.now().isoformat(),
-                    "model": "gpt-3.5-turbo",
-                    "environment": "render_production",
-                    "ai_used": True,
-                    "openai_used": True
+        try:
+            import openai
+            openai.api_key = OPENAI_API_KEY
+            
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Olet Sentinel 100K - henkilökohtainen talousneuvoja. Vastaa aina suomeksi ja käytä emojiita."},
+                    {"role": "user", "content": ai_prompt}
+                ],
+                max_tokens=500,
+                temperature=0.7
+            )
+            
+            ai_response = response.choices[0].message.content
+            
+            return {
+                "response": ai_response,
+                "enhanced_prompt_used": True,
+                "user_email": user_email,
+                "personalization_level": "Maximum",
+                "context_sources": ["goal_tracking", "watchdog", "cycles", "analysis"],
+                "watchdog_state": context.get("watchdog_state", "Active"),
+                "goal_progress": context.get("progress_summary", {}).get("goal_progress_percentage", 0),
+                "timestamp": datetime.now().isoformat(),
+                "model": "gpt-3.5-turbo",
+                "environment": "render_production",
+                "ai_used": True,
+                "openai_used": True,
+                "debug": {
+                    "openai_key_available": bool(OPENAI_API_KEY),
+                    "openai_key_length": len(OPENAI_API_KEY) if OPENAI_API_KEY else 0,
+                    "openai_key_starts_with": OPENAI_API_KEY[:10] if OPENAI_API_KEY else "None"
                 }
-                
-            except Exception as e:
-                print(f"❌ OpenAI API error: {e}")
-                # Fallback to intelligent response generation
-                return generate_intelligent_response(message.message, context)
-        else:
-            print("⚠️ OPENAI_API_KEY not found, using intelligent fallback")
-            return generate_intelligent_response(message.message, context)
+            }
+            
+        except Exception as e:
+            print(f"❌ OpenAI API error: {e}")
+            return {
+                "response": f"❌ OpenAI API virhe: {str(e)}. Ota yhteyttä ylläpitoon.",
+                "error": "OPENAI_API_ERROR",
+                "error_details": str(e),
+                "enhanced_prompt_used": False,
+                "user_email": user_email,
+                "personalization_level": "None",
+                "context_sources": [],
+                "watchdog_state": context.get("watchdog_state", "Error"),
+                "goal_progress": context.get("progress_summary", {}).get("goal_progress_percentage", 0),
+                "timestamp": datetime.now().isoformat(),
+                "model": "error",
+                "environment": "render_production",
+                "ai_used": False,
+                "openai_used": False,
+                "debug": {
+                    "openai_key_available": bool(OPENAI_API_KEY),
+                    "openai_key_length": len(OPENAI_API_KEY) if OPENAI_API_KEY else 0,
+                    "openai_key_starts_with": OPENAI_API_KEY[:10] if OPENAI_API_KEY else "None"
+                }
+            }
         
     except Exception as e:
         print(f"❌ Enhanced AI chat error: {e}")
-        # Fallback to basic chat
-        return complete_ai_chat(message)
-
-def generate_intelligent_response(user_message: str, context: dict) -> dict:
-    """Generate intelligent response without OpenAI API"""
-    user_message_lower = user_message.lower()
-    
-    # Intelligent response based on message content and user context
-    if "onboarding" in user_message_lower or "aloita onboarding" in user_message_lower:
-        response = f"""🎯 <b>Onboarding - {context.get('name', 'Käyttäjä')}</b>
-
-Tervetuloa Sentinel 100K onboardingiin! Autan sinua luomaan henkilökohtaisen taloussuunnitelman.
-
-📋 <b>Seuraavat vaiheet:</b>
-
-1️⃣ <b>Perustiedot</b>
-Kirjoita: "Olen [ikä]-vuotias [ammatti]"
-
-2️⃣ <b>Talousasiat</b>
-Kirjoita: "Kuukausituloni on [summa]€ ja menoni [summa]€"
-
-3️⃣ <b>Säästöt ja tavoitteet</b>
-Kirjoita: "Säästöni on [summa]€ ja tavoitteeni [summa]€"
-
-4️⃣ <b>Lisätiedot</b>
-Kerro taidoistasi, kokemuksestasi ja motivaatiostasi
-
-💡 <b>Esimerkkejä:</b>
-• "Olen 30-vuotias ohjelmoija"
-• "Tuloni 3000€, menoni 2000€"
-• "Säästöni 5000€, tavoite 100000€"
-
-Aloitetaan! Kerro ensin ikäsi ja ammattisi. 🚀"""
-    
-    elif "säästä" in user_message_lower or "savings" in user_message_lower or "goal" in user_message_lower:
-        response = f"""🎯 <b>Henkilökohtainen säästöanalyysi {context.get('name', 'Käyttäjä')}:</b>
-
-💰 <b>Nykyinen tilanne:</b>
-• Säästöt: {context.get('current_savings', 0):,.0f}€
-• Tavoite: {context.get('savings_goal', 100000):,.0f}€
-• Edistyminen: {context.get('progress_summary', {}).get('goal_progress_percentage', 0):.1f}%
-
-📈 <b>Suositukseni:</b>
-• Jatka säästämistä {context.get('target_income_weekly', 300):,.0f}€/viikko
-• Optimoi kulujasi ja etsi lisätuloja
-• Seuraa edistymistäsi säännöllisesti
-
-💪 <b>Motivaatio:</b>
-Jäljellä tavoitteeseen: {context.get('savings_goal', 100000) - context.get('current_savings', 0):,.0f}€
-Olet {context.get('progress_summary', {}).get('goal_progress_percentage', 0):.1f}% matkalla! Jatka hyvää työtä! 🚀"""
-    
-    elif "tilanne" in user_message_lower or "progress" in user_message_lower or "dashboard" in user_message_lower:
-        response = f"""📊 <b>Tilannekatsaus {context.get('name', 'Käyttäjä')}:</b>
-
-✅ <b>Profiilitäydellisyys:</b> {context.get('data_completeness', 0)}%
-🔄 <b>Viikkosykli:</b> {context.get('current_week', 1)}/7 ({context.get('cycle_progress', 0):.1f}% valmis)
-🎯 <b>Tavoitteessa:</b> {'✅ Kyllä' if context.get('progress_summary', {}).get('on_track', False) else '⚠️ Hieman jäljessä'}
-
-🤖 <b>Watchdog-tila:</b> {context.get('watchdog_state', 'Active')}
-💡 <b>Henkilökohtainen neuvoni:</b>
-{context.get('ai_context', {}).get('ai_recommendations', ['Jatka hyvää työtä!'])[0] if context.get('ai_context', {}).get('ai_recommendations') else 'Jatka säästämistä ja optimoi kulujasi!'}
-
-Personoitu vastaus perustuu täydelliseen käyttäjäprofiiliisi! 🚀"""
-    
-    elif "neuvo" in user_message_lower or "advice" in user_message_lower or "help" in user_message_lower:
-        response = f"""💡 <b>Henkilökohtaiset neuvoni {context.get('name', 'Käyttäjä')}:</b>
-
-🎯 <b>Perustuu tilanteeseesi:</b>
-• Säästöt: {context.get('current_savings', 0):,.0f}€
-• Tavoite: {context.get('savings_goal', 100000):,.0f}€
-• Viikkotavoite: {context.get('target_income_weekly', 300):,.0f}€
-
-💪 <b>Konkreettiset toimenpiteet:</b>
-1. Optimoi kuukausikulujasi
-2. Etsi lisätuloja sivutoimena
-3. Sijoita säästösi tuottavasti
-4. Seuraa edistymistäsi viikoittain
-
-🤖 <b>Watchdog-suositus:</b>
-{context.get('ai_context', {}).get('ai_recommendations', ['Jatka hyvää työtä!'])[0] if context.get('ai_context', {}).get('ai_recommendations') else 'Keskity viikkotavoitteeseesi ja optimoi kulujasi!'}
-
-Olen täällä auttamassa saavuttamaan 100 000€ tavoitteesi! 💪"""
-    
-    elif "budjetti" in user_message_lower or "budget" in user_message_lower:
-        monthly_income = context.get('monthly_income', 0)
-        monthly_expenses = context.get('monthly_expenses', 0)
-        savings_potential = monthly_income - monthly_expenses
-        
-        response = f"""💰 <b>Budjettianalyysi {context.get('name', 'Käyttäjä')}:</b>
-
-📊 <b>Kuukausibudjetti:</b>
-• Tulot: {monthly_income:,.0f}€
-• Menot: {monthly_expenses:,.0f}€
-• Säästöpotentiaali: {savings_potential:,.0f}€
-
-💡 <b>Suositukseni:</b>
-• Optimoi menojasi {monthly_expenses * 0.1:,.0f}€/kk
-• Lisää säästöjä {savings_potential * 0.8:,.0f}€/kk
-• Seuraa kulujasi tarkasti
-
-🎯 <b>Tavoite:</b> {context.get('target_income_weekly', 300):,.0f}€/viikko säästöjä! 🚀"""
-    
-    else:
-        # Generic intelligent response
-        response = f"""🤖 <b>Sentinel 100K vastaa:</b>
-
-Hei {context.get('name', 'Käyttäjä')}! Olen analysoinut henkilökohtaisen profiilisi ja tässä vastaukseni:
-
-💬 <b>Kysymyksesi:</b> {user_message}
-
-💰 <b>Henkilökohtainen konteksti:</b>
-• Säästöt: {context.get('current_savings', 0):,.0f}€
-• Tavoite: {context.get('savings_goal', 100000):,.0f}€
-• Edistyminen: {context.get('progress_summary', {}).get('goal_progress_percentage', 0):.1f}%
-• Viikko: {context.get('current_week', 1)}/7
-
-💡 <b>Henkilökohtainen neuvoni:</b>
-Keskity viikkotavoitteeseesi ({context.get('target_income_weekly', 300):,.0f}€) ja optimoi kulujasi. Jatka hyvää työtä saavuttaaksesi 100 000€ tavoitteesi!
-
-Kysy mitä tahansa talousasioista - olen täällä auttamassa! 🚀"""
-    
-    return {
-        "response": response,
-        "enhanced_prompt_used": True,
-        "user_email": context.get('email', 'unknown'),
-        "personalization_level": "Maximum",
-        "context_sources": ["goal_tracking", "watchdog", "cycles", "analysis"],
-        "watchdog_state": context.get("watchdog_state", "Active"),
-        "goal_progress": context.get("progress_summary", {}).get("goal_progress_percentage", 0),
-        "timestamp": datetime.now().isoformat(),
-        "model": "sentinel-intelligent-fallback",
-        "environment": "render_production",
-        "ai_used": True,
-        "openai_used": False
-    }
+        return {
+            "response": f"❌ Järjestelmävirhe: {str(e)}. Ota yhteyttä ylläpitoon.",
+            "error": "SYSTEM_ERROR",
+            "error_details": str(e),
+            "enhanced_prompt_used": False,
+            "user_email": user_email,
+            "personalization_level": "None",
+            "context_sources": [],
+            "timestamp": datetime.now().isoformat(),
+            "model": "error",
+            "environment": "render_production",
+            "ai_used": False,
+            "openai_used": False
+        }
 
 @app.post("/api/v1/chat/complete")
 def complete_ai_chat(message: ChatMessage):
@@ -1095,6 +1026,116 @@ def get_or_create_telegram_user(telegram_id: int, username: str = None) -> dict:
         "user": user_profile,
         "onboarding": onboarding_profile
     }
+
+def handle_telegram_command(text: str, user_id: int, username: str) -> str:
+    """Handle Telegram commands"""
+    
+    # Get or create user profile
+    user_info = get_or_create_telegram_user(user_id, username)
+    telegram_email = user_info["email"]
+    onboarding = user_info["onboarding"]
+    name = onboarding.get("name", username or f"TelegramUser_{user_id}")
+    current_savings = onboarding.get("current_savings", 0)
+    savings_goal = onboarding.get("savings_goal", 100000)
+    progress = (current_savings / savings_goal * 100) if savings_goal > 0 else 0
+    
+    # Use RenderUserContextManager for context
+    context_manager = RenderUserContextManager(telegram_email)
+    context = context_manager.get_enhanced_context()
+    
+    text_lower = text.lower().strip()
+    
+    if text_lower in ["/start", "start", "aloita"]:
+        return f"""🚀 <b>Tervetuloa Sentinel 100K:ään, {name}!</b>
+
+Olen henkilökohtainen talousneuvojasi, joka auttaa sinua saavuttamaan <b>100 000€ säästötavoitteen</b>.
+
+💰 <b>Nykyinen tilanteesi:</b>
+• Säästöt: {current_savings:,.0f}€
+• Tavoite: {savings_goal:,.0f}€
+• Edistyminen: {progress:.1f}%
+
+💡 <b>Miten voin auttaa:</b>
+• Kysy talousneuvoja
+• Katso dashboard: /dashboard
+• Pyydä henkilökohtaisia suosituksia
+• Seuraa edistymistäsi
+
+Kirjoita mitä tahansa talousasioista - vastaan henkilökohtaisesti! 💪"""
+
+    elif text_lower in ["/dashboard", "dashboard", "tilanne", "progress"]:
+        return f"""📊 <b>Dashboard - {name}</b>
+
+💰 <b>Säästöt:</b> {current_savings:,.0f}€ / {savings_goal:,.0f}€
+📈 <b>Edistyminen:</b> {progress:.1f}%
+🎯 <b>Jäljellä:</b> {savings_goal - current_savings:,.0f}€
+
+📅 <b>Viikkosykli:</b> {context.get('current_week', 1)}/7
+💪 <b>Viikkotavoite:</b> {context.get('target_income_weekly', 300):,.0f}€
+🤖 <b>Watchdog:</b> {context.get('watchdog_state', 'Active')}
+
+💡 <b>Henkilökohtainen neuvoni:</b>
+{context.get('ai_context', {}).get('ai_recommendations', ['Jatka hyvää työtä!'])[0] if context.get('ai_context', {}).get('ai_recommendations') else 'Keskity viikkotavoitteeseesi ja optimoi kulujasi!'}"""
+
+    elif text_lower in ["/help", "help", "apua", "neuvo"]:
+        return f"""💡 <b>Sentinel 100K - Apu</b>
+
+<b>Komennot:</b>
+• /start - Aloita
+• /dashboard - Näytä dashboard
+• /help - Tämä apu
+• /onboarding - Aloita onboarding
+
+<b>Vapaamuotoiset kysymykset:</b>
+• "Mikä on budjettini?"
+• "Kerro talousvinkkejä"
+• "Miten säästän enemmän?"
+• "Analysoi tilanteeni"
+• "Anna henkilökohtaisia neuvoja"
+
+<b>Henkilökohtainen konteksti:</b>
+• Säästöt: {current_savings:,.0f}€
+• Tavoite: {savings_goal:,.0f}€
+• Edistyminen: {progress:.1f}%
+
+Kysy mitä tahansa - vastaan henkilökohtaisesti! 🤖"""
+
+    elif text_lower in ["/onboarding", "onboarding", "aloita onboarding"]:
+        return f"""🎯 <b>Onboarding - {name}</b>
+
+Tervetuloa Sentinel 100K onboardingiin! Autan sinua luomaan henkilökohtaisen taloussuunnitelman.
+
+📋 <b>Seuraavat vaiheet:</b>
+
+1️⃣ <b>Perustiedot</b>
+Kirjoita: "Olen [ikä]-vuotias [ammatti]"
+
+2️⃣ <b>Talousasiat</b>
+Kirjoita: "Kuukausituloni on [summa]€ ja menoni [summa]€"
+
+3️⃣ <b>Säästöt ja tavoitteet</b>
+Kirjoita: "Säästöni on [summa]€ ja tavoitteeni [summa]€"
+
+4️⃣ <b>Lisätiedot</b>
+Kerro taidoistasi, kokemuksestasi ja motivaatiostasi
+
+💡 <b>Esimerkkejä:</b>
+• "Olen 30-vuotias ohjelmoija"
+• "Tuloni 3000€, menoni 2000€"
+• "Säästöni 5000€, tavoite 100000€"
+
+Aloitetaan! Kerro ensin ikäsi ja ammattisi. 🚀"""
+
+    else:
+        return f"""❓ <b>Tuntematon komento: {text}</b>
+
+Käytä komentoja:
+• /start - Aloita
+• /dashboard - Näytä dashboard  
+• /help - Apu
+• /onboarding - Aloita onboarding
+
+Tai kirjoita vapaamuotoinen kysymys talousasioista! 💡"""
 
 def get_telegram_response(text: str, user_id: int, username: str) -> str:
     """Get AI-powered response for Telegram user with full personalization"""

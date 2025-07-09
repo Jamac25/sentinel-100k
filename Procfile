@@ -1,1 +1,1 @@
-web: uvicorn sentinel_render_enhanced:app --host 0.0.0.0 --port $PORT 
+web: pip uninstall -y openai && pip install openai==0.28.0 && uvicorn sentinel_render_ready:app --host 0.0.0.0 --port $PORT 

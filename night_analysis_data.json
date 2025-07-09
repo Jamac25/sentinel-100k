@@ -1,5 +1,5 @@
 {
-  "last_analysis": "2025-07-03T02:35:14.669918",
+  "last_analysis": "2025-07-09T02:24:59.312519",
   "users_analyzed": 1,
   "results": {
     "onboarding_demo@example.com": {
@@ -19,7 +19,7 @@
         "coaching_intensity": "high",
         "success_probability": 60.0
       },
-      "analysis_timestamp": "2025-07-03T02:35:14.669905",
+      "analysis_timestamp": "2025-07-09T02:24:59.312496",
       "strategy_updated": true
     }
   }
