@@ -1512,17 +1512,52 @@ Aloitetaan! Kerro ensin ikäsi ja ammattisi. 🚀"""
             else:
                 response_text = str(ai_response)
             
-            # Return AI response directly - no fallback
+            # Always return AI response - no fallbacks
             if response_text:
                 return response_text
             else:
-                # Only minimal fallback if AI response is completely empty
-                return f"🤖 Hei {name}! Vastaan pian kysymykseesi: '{text}'"
+                # If AI response is empty, try again with a simple prompt
+                try:
+                    simple_prompt = f"Käyttäjä kysyy: {text}. Vastaa lyhyesti ja suorapuheisesti."
+                    import openai
+                    openai.api_key = OPENAI_API_KEY
+                    
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "system", "content": "Olet Sentinel 100K - talousneuvoja. Vastaa lyhyesti ja suorapuheisesti."},
+                            {"role": "user", "content": simple_prompt}
+                        ],
+                        max_tokens=100,
+                        temperature=0.7
+                    )
+                    
+                    return response.choices[0].message.content
+                except:
+                    # Only if everything fails, give minimal response
+                    return f"🤖 Hei {name}! Vastaan pian kysymykseesi."
             
         except Exception as e:
             print(f"❌ AI response error: {e}")
-            # Minimal error response
-            return f"🤖 Hei {name}! Pahoittelut, tekninen ongelma. Yritä uudelleen pian."
+            # Try one more time with simple AI call
+            try:
+                import openai
+                openai.api_key = OPENAI_API_KEY
+                
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "Olet Sentinel 100K - talousneuvoja. Vastaa lyhyesti."},
+                        {"role": "user", "content": f"Käyttäjä sanoo: {text}"}
+                    ],
+                    max_tokens=50,
+                    temperature=0.7
+                )
+                
+                return response.choices[0].message.content
+            except:
+                # Only if AI completely fails
+                return f"🤖 Hei {name}! Pahoittelut, tekninen ongelma. Yritä uudelleen pian."
 
 class TelegramUpdate(BaseModel):
     update_id: int
