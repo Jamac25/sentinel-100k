@@ -1044,26 +1044,8 @@ def enhanced_ai_chat_render(message: ChatMessage, user_email: str):
                 }
             }
         
-        # Build comprehensive AI prompt
-        ai_prompt = f"""
-Olet Sentinel 100K - henkilökohtainen talousneuvoja. Käytä seuraavia käyttäjän tietoja:
-
-KÄYTTÄJÄN TIEDOT:
-- Nimi: {context.get('name', 'Käyttäjä')}
-- Nykyiset säästöt: {context.get('current_savings', 0):,.0f}€
-- Tavoite: {context.get('savings_goal', 100000):,.0f}€
-- Edistyminen: {context.get('progress_summary', {}).get('goal_progress_percentage', 0):.1f}%
-- Viikko: {context.get('current_week', 1)}/7
-- Watchdog-tila: {context.get('watchdog_state', 'Active')}
-- Kuukausitulot: {context.get('monthly_income', 0):,.0f}€
-- Kuukausimenot: {context.get('monthly_expenses', 0):,.0f}€
-- Viikkotavoite: {context.get('target_income_weekly', 300):,.0f}€
-
-KÄYTTÄJÄN KYSYMYS: {message.message}
-
-OHJEISTUS:
-Vastaa henkilökohtaisesti, käytännöllisesti ja suomeksi. Käytä käyttäjän oikeita tietoja ja anna konkreettisia neuvoja. Ole motivoiva ja auta käyttäjää saavuttamaan 100 000€ säästötavoitteen. Käytä emojiita ja tee vastauksesta selkeä. Vastaa suoraan kysymykseen ja anna käytännöllisiä neuvoja.
-"""
+        # Build enhanced AI prompt using the strict, direct format
+        ai_prompt = build_render_enhanced_ai_prompt(user_email, message.message)
 
         # Use OpenAI API for real AI responses
         try:
