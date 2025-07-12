@@ -771,7 +771,7 @@ def build_render_enhanced_ai_prompt(user_email: str, query: str) -> str:
     """Build enhanced AI prompt for Render production - STRICT, DIRECT ANSWERS ONLY"""
     ctx = RenderUserContextManager(user_email).get_enhanced_context()
     
-    return f"""Olet Sentinel 100K -talousvalmentaja. Vastaa AINA suoraan käyttäjän kysymykseen.
+    return f"""Olet Sentinel 100K - henkilökohtainen talousneuvoja. Vastaa käyttäjän kysymykseen lyhyesti ja suorapuheisesti.
 
 Käyttäjä: {ctx['name']}
 Säästöt: {ctx['current_savings']:,.0f}€ / {ctx['savings_goal']:,.0f}€
@@ -780,10 +780,11 @@ Viikko: {ctx['current_week']}/7
 Kysymys: {query}
 
 OHJEET:
-- Vastaa vain kysymykseen, älä lisää mitään muuta.
-- Käytä vain tietoa yllä olevasta kontekstista.
-- Älä motivoi, älä selitä, älä toista kysymystä.
-- Jos et tiedä vastausta, sano vain: "En tiedä."""
+- Vastaa lyhyesti (2-3 lausetta, max 50 sanaa)
+- Ole ystävällinen ja avulias
+- Käytä emojiita sopivasti
+- Jos kysytään sinusta tai järjestelmästä, kerro että olet Sentinel 100K -talousneuvoja
+- Jos kysytään talousasioista, anna käytännöllisiä neuvoja"""
 
 # Initialize systems
 onboarding_system = ProductionOnboardingSystem()
