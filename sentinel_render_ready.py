@@ -780,7 +780,7 @@ Viikko: {ctx['current_week']}/7
 Kysymys: {query}
 
 OHJEET:
-- Vastaa lyhyesti (2-3 lausetta, max 50 sanaa)
+- Vastaa lyhyesti (max 2 lausetta, max 30 sanaa)
 - Ole ystävällinen ja avulias
 - Käytä emojiita sopivasti
 - Jos kysytään sinusta tai järjestelmästä, kerro että olet Sentinel 100K -talousneuvoja
@@ -1056,10 +1056,10 @@ def enhanced_ai_chat_render(message: ChatMessage, user_email: str):
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "Olet Sentinel 100K - henkilökohtainen talousneuvoja. Vastaa aina suomeksi ja käytä emojiita."},
+                    {"role": "system", "content": "Olet Sentinel 100K - henkilökohtainen talousneuvoja. Vastaa aina suomeksi, lyhyesti (max 2 lausetta) ja käytä emojiita."},
                     {"role": "user", "content": ai_prompt}
                 ],
-                max_tokens=500,
+                max_tokens=100,
                 temperature=0.7
             )
             
@@ -1476,7 +1476,7 @@ Kirjoita mitä tahansa talousasioista - vastaan henkilökohtaisesti! 💪"""
 
 Kysy mitä tahansa - vastaan henkilökohtaisesti! 🤖"""
 
-    elif "onboarding" in text_lower or "aloita onboarding" in text_lower or "/onboarding" in text_lower:
+    elif "onboarding" in text_lower or "aloita onboarding" in text_lower or "/onboarding" in text_lower or "onboading" in text_lower:
         return f"""🎯 <b>Onboarding - {name}</b>
 
 Tervetuloa Sentinel 100K onboardingiin! Autan sinua luomaan henkilökohtaisen taloussuunnitelman.
@@ -1519,17 +1519,17 @@ Aloitetaan! Kerro ensin ikäsi ja ammattisi. 🚀"""
             else:
                 # If AI response is empty, try again with a simple prompt
                 try:
-                    simple_prompt = f"Käyttäjä kysyy: {text}. Vastaa lyhyesti ja suorapuheisesti."
+                    simple_prompt = f"Käyttäjä kysyy: {text}. Vastaa lyhyesti (max 2 lausetta) ja ystävällisesti."
                     import openai
                     openai.api_key = OPENAI_API_KEY
                     
                     response = openai.ChatCompletion.create(
                         model="gpt-3.5-turbo",
                         messages=[
-                            {"role": "system", "content": "Olet Sentinel 100K - talousneuvoja. Vastaa lyhyesti ja suorapuheisesti."},
+                            {"role": "system", "content": "Olet Sentinel 100K - talousneuvoja. Vastaa aina lyhyesti (max 2 lausetta) ja ystävällisesti. Käytä emojiita."},
                             {"role": "user", "content": simple_prompt}
                         ],
-                        max_tokens=100,
+                        max_tokens=50,
                         temperature=0.7
                     )
                     
@@ -1548,10 +1548,10 @@ Aloitetaan! Kerro ensin ikäsi ja ammattisi. 🚀"""
                 response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": "Olet Sentinel 100K - talousneuvoja. Vastaa lyhyesti."},
+                        {"role": "system", "content": "Olet Sentinel 100K - talousneuvoja. Vastaa aina lyhyesti (max 2 lausetta) ja ystävällisesti. Käytä emojiita."},
                         {"role": "user", "content": f"Käyttäjä sanoo: {text}"}
                     ],
-                    max_tokens=50,
+                    max_tokens=30,
                     temperature=0.7
                 )
                 
