@@ -768,22 +768,34 @@ class RenderUserContextManager:
         return round((completed_fields / len(required_fields)) * 100)
 
 def build_render_enhanced_ai_prompt(user_email: str, query: str) -> str:
-    """Build enhanced AI prompt for Render production - STRICT, DIRECT ANSWERS ONLY"""
+    """Build enhanced AI prompt for Render production"""
     ctx = RenderUserContextManager(user_email).get_enhanced_context()
     
-    return f"""Olet Sentinel 100K -talousvalmentaja. Vastaa AINA suoraan käyttäjän kysymykseen.
+    return f"""
+Sinä olet Sentinel 100K -agentti, älykkä henkilökohtainen talousvalmentaja.
 
-Käyttäjä: {ctx['name']}
-Säästöt: {ctx['current_savings']:,.0f}€ / {ctx['savings_goal']:,.0f}€
-Viikko: {ctx['current_week']}/7
+=== KÄYTTÄJÄN TÄYDELLINEN KONTEKSTI (RENDER PRODUCTION) ===
+👤 Käyttäjä: {ctx['name']} ({ctx['user_email']})
+💰 Nykyiset säästöt: {ctx['current_savings']:,.0f}€
+🎯 Tavoite: {ctx['savings_goal']:,.0f}€ 
+📈 Edistyminen: {ctx['progress_summary']['goal_progress_percentage']:.1f}%
 
-Kysymys: {query}
+📅 VIIKKOSYKLI:
+- Viikko: {ctx['current_week']}/7
+- Viikkotavoite: {ctx['target_income_weekly']:,.0f}€
+- Sykli edistyminen: {ctx['cycle_progress']:.1f}%
 
-OHJEET:
-- Vastaa vain kysymykseen, älä lisää mitään muuta.
-- Käytä vain tietoa yllä olevasta kontekstista.
-- Älä motivoi, älä selitä, älä toista kysymystä.
-- Jos et tiedä vastausta, sano vain: "En tiedä."""
+🤖 AGENTTI TILA:
+- Watchdog: {ctx['watchdog_state']}
+- Motivaatio: {ctx['ai_context']['motivation_level']}/10
+- Datan täydellisyys: {ctx['data_completeness']}%
+
+=== KÄYTTÄJÄN KYSYMYS ===
+{query}
+
+=== OHJEISTUS ===
+Vastaa henkilökohtaisesti ja käytännöllisesti. Anna konkreettisia neuvoja jotka sopivat juuri tälle käyttäjälle.
+"""
 
 # Initialize systems
 onboarding_system = ProductionOnboardingSystem()
@@ -1520,7 +1532,7 @@ Kerro taidoistasi, kokemuksestasi ja motivaatiostasi
 Aloitetaan! Kerro ensin ikäsi ja ammattisi. 🚀"""
 
     else:
-        # Use enhanced AI chat for natural language responses - NO MOCK FALLBACK
+        # Use enhanced AI chat for natural language responses
         try:
             chat_message = ChatMessage(message=text)
             ai_response = enhanced_ai_chat_render(chat_message, user_email=telegram_email)
@@ -1530,17 +1542,43 @@ Aloitetaan! Kerro ensin ikäsi ja ammattisi. 🚀"""
             else:
                 response_text = str(ai_response)
             
-            # Return AI response directly - no fallback
-            if response_text:
-                return response_text
-            else:
-                # Only minimal fallback if AI response is completely empty
-                return f"🤖 Hei {name}! Vastaan pian kysymykseesi: '{text}'"
+            # If AI response is empty or too short, provide a fallback
+            if not response_text or len(response_text) < 30:
+                response_text = f"""🤖 <b>Sentinel 100K vastaa:</b>
+
+Hei {name}! Olen analysoinut kysymyksesi: "{text}"
+
+💰 <b>Henkilökohtainen konteksti:</b>
+• Säästöt: {current_savings:,.0f}€
+• Tavoite: {savings_goal:,.0f}€
+• Edistyminen: {progress:.1f}%
+
+💡 <b>Henkilökohtainen neuvoni:</b>
+Keskity viikkotavoitteeseesi ({context.get('target_income_weekly', 300):,.0f}€) ja optimoi kulujasi. Jatka hyvää työtä saavuttaaksesi 100 000€ tavoitteesi!
+
+Kysy mitä tahansa talousasioista - olen täällä auttamassa! 🚀"""
+            
+            return response_text
             
         except Exception as e:
             print(f"❌ AI response error: {e}")
-            # Minimal error response
-            return f"🤖 Hei {name}! Pahoittelut, tekninen ongelma. Yritä uudelleen pian."
+            # Fallback response with user data
+            return f"""🤖 <b>Sentinel 100K vastaa:</b>
+
+Hei {name}! Tässä henkilökohtainen vastaukseni:
+
+💬 <b>Kysymyksesi:</b> {text}
+
+💰 <b>Henkilökohtainen tilanteesi:</b>
+• Säästöt: {current_savings:,.0f}€
+• Tavoite: {savings_goal:,.0f}€
+• Edistyminen: {progress:.1f}%
+• Viikko: {context.get('current_week', 1)}/7
+
+💡 <b>Henkilökohtainen neuvoni:</b>
+Keskity viikkotavoitteeseesi ({context.get('target_income_weekly', 300):,.0f}€) ja optimoi kulujasi. Jatka hyvää työtä saavuttaaksesi 100 000€ tavoitteesi!
+
+Kysy mitä tahansa talousasioista - autan sinua saavuttamaan tavoitteesi! 🚀"""
 
 class TelegramUpdate(BaseModel):
     update_id: int
@@ -1698,49 +1736,6 @@ def test_telegram_send():
             "chat_id": test_chat_id,
             "message": "Test message sent to Telegram"
         }
-        
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-@app.post("/telegram/test-ai-response")
-def test_telegram_ai_response():
-    """Test AI response generation for Telegram"""
-    try:
-        # Simulate Telegram message
-        test_user_id = 6698356764
-        test_username = "test_user"
-        test_message = "moi"
-        
-        # Get AI response
-        ai_response = get_telegram_response(test_message, test_user_id, test_username)
-        
-        # Send to Telegram
-        telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
-        if telegram_token:
-            telegram_url = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
-            payload = {
-                "chat_id": test_user_id,
-                "text": ai_response,
-                "parse_mode": "HTML"
-            }
-            
-            response = requests.post(telegram_url, json=payload)
-            
-            return {
-                "status": "success" if response.status_code == 200 else "error",
-                "telegram_status": response.status_code,
-                "ai_response": ai_response,
-                "ai_response_length": len(ai_response),
-                "user_id": test_user_id,
-                "message": "AI response sent to Telegram"
-            }
-        else:
-            return {
-                "status": "error",
-                "ai_response": ai_response,
-                "ai_response_length": len(ai_response),
-                "message": "TELEGRAM_BOT_TOKEN not found"
-            }
         
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -3098,26 +3093,6 @@ class ProductionSchedulerService:
         """Trigger warning alert"""
         print(f"⚠️ WARNING ALERT for {user_email}: {reason}")
         # This would integrate with Telegram notification system
-    
-    def _run_receipt_check(self):
-        """Check for recent receipts and send reminders"""
-        print("📄 Running receipt checks...")
-        try:
-            data_manager = ProductionDataManager()
-            users_data = data_manager.get_user_data()
-            
-            for user_email in users_data.keys():
-                # Check if user has uploaded receipts recently
-                # This is a placeholder for receipt tracking
-                print(f"📄 Checking receipts for {user_email}")
-                
-                # In a real implementation, this would check last receipt date
-                # and send reminders if needed
-                
-            print("✅ Receipt checks completed")
-            
-        except Exception as e:
-            print(f"❌ Receipt check failed: {e}")
 
 # Initialize notification manager
 notification_manager = TelegramNotificationManager()
@@ -3151,8 +3126,6 @@ class ReceiptTracker:
                         user['telegram_id'], 
                         reminder_message
                     )
-        except Exception as e:
-            print(f"Error in check_daily_receipts: {e}")
 
     def get_last_receipt_date(self, user_id: int) -> Optional[date]:
         """Hae käyttäjän viimeisimmän kuitin päivämäärä"""
@@ -3191,6 +3164,7 @@ class ReceiptTracker:
             error_message = "❌ Pahoittelen, kuitin tallennuksessa tapahtui virhe. Kokeile uudelleen."
             self.notification_manager.send_telegram_message(user_id, error_message)
 
+# VAIHE 1: TELEGRAM NOTIFIKAATIOJÄRJESTELMÄ
 class TelegramNotifier:
     """Kattava Telegram-notifikaatiojärjestelmä vaiheelle 1"""
     
@@ -4375,6 +4349,12 @@ async def debug_openai_status():
         "environment": "render_production",
         "timestamp": datetime.now().isoformat()
     }
+
+# Initialize notification manager
+notification_manager = TelegramNotificationManager()
+
+# Initialize scheduler
+scheduler = ProductionSchedulerService()
 
 # 🏁 Main entry point
 if __name__ == "__main__":

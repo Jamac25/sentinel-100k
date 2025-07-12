@@ -10,7 +10,7 @@ class IntentEngine:
 
     def detect_intent(self, message: str) -> str:
         msg = message.lower()
-        # Komentopohjaiset intentit
+        # Komentopohjaiset intentit (regex)
         if "/setgoal" in msg or "tavoite" in msg:
             return "SET_GOAL"
         if "/onboarding" in msg or "aloita onboarding" in msg:
@@ -19,19 +19,19 @@ class IntentEngine:
             return "DASHBOARD"
         if "/start" in msg:
             return "START"
-        if "/analyysi" in msg or "analyysi" in msg or "/runanalysis" in msg or "tee analyysi" in msg:
+        if "/analyysi" in msg or "analyysi" in msg or "/runanalysis" in msg:
             return "RUN_ANALYSIS"
-        if "/cycle" in msg or "/newcycle" in msg or "aloita uusi sykli" in msg:
+        if "/cycle" in msg or "aloita uusi sykli" in msg or "/newcycle" in msg:
             return "START_CYCLE"
         if "/week" in msg or "viikko" in msg:
             return "WEEK"
-        if "/report" in msg or "raportti" in msg or "viikkoraportti" in msg:
+        if "/report" in msg or "raportti" in msg:
             return "REPORT"
-        if "/income" in msg or "tuloni" in msg or "päivitä tuloni" in msg:
+        if "/income" in msg or "tulot" in msg:
             return "INCOME"
-        if "/expenses" in msg or "menoni" in msg or "päivitä menoni" in msg:
+        if "/expenses" in msg or "menot" in msg:
             return "EXPENSES"
-        if "/motivate" in msg or "motivaatiota" in msg or "tarvitsen motivaatiota" in msg:
+        if "/motivate" in msg or "motivo" in msg:
             return "MOTIVATE"
         if "/help" in msg or "apua" in msg:
             return "HELP"
@@ -41,25 +41,25 @@ class IntentEngine:
             return "EXPORT"
         if "/delete" in msg or "poista profiili" in msg:
             return "DELETE"
-        if "riskini" in msg or "näytä riskini" in msg or "onko talouteni turvassa" in msg:
+        if "/risk" in msg or "riskini" in msg or "riskianalyysi" in msg:
             return "RISK"
-        # Fallback: OpenAI intent tunnistus
+        # Universaali fallback: OpenAI intent tunnistus
         if self.openai_key:
             return self.openai_intent(message)
         return "UNKNOWN"
 
     def extract_parameters(self, message: str, intent: str) -> dict:
         params = {}
+        # Regex-parametrit
         if intent in ["SET_GOAL", "INCOME", "EXPENSES"]:
             match = re.search(r"(\d+)", message)
             if match:
                 params["amount"] = int(match.group(1))
-        # Lisää muita parametrihakuja intentin mukaan
         if intent == "WEEK":
             match = re.search(r"viikko\s*(\d+)", message)
             if match:
                 params["week"] = int(match.group(1))
-        # Fallback: OpenAI parametrihaku
+        # Universaali fallback: OpenAI parametrihaku
         if self.openai_key and not params:
             params = self.openai_parameters(message, intent)
         return params
